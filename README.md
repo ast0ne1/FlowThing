@@ -2,6 +2,8 @@
 
 A music visualizer app for DeskThing with multiple visualization types, customizable settings, and real-time audio response.
 
+Vibe coded with Cursor based on Riprod's DeskThing app template.
+
 ## Features
 
 ### 🎨 Visualization Types
@@ -150,4 +152,5 @@ Feel free to contribute to FlowThing by:
 ## License
 
 This project is part of the DeskThing ecosystem and follows the same licensing terms.
+
 
