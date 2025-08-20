@@ -208,9 +208,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 try {
                   const value = e.target.value as 'deskthing' | 'system' | 'microphone' | 'mock';
                   onSettingChange('audioSource', value);
-                } catch (error) {
-                  console.error('[DeskVizor] Error changing audio source:', error);
-                }
+                        } catch (error) {
+          console.error('[FlowThing] Error changing audio source:', error);
+        }
               }}
               className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
@@ -266,15 +266,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <select
               value={settings?.performanceMode || 'balanced'}
               onChange={(e) => {
-                try {
-                  const value = e.target.value as 'quality' | 'balanced' | 'performance';
-                  console.log('[DeskVizor] Performance mode changing to:', value);
-                  onSettingChange('performanceMode', value);
-                } catch (error) {
-                  console.error('[DeskVizor] Error changing performance mode:', error);
-                  // Fallback to balanced mode if there's an error
-                  onSettingChange('performanceMode', 'balanced');
-                }
+                                  try {
+                    const value = e.target.value as 'quality' | 'balanced' | 'performance';
+                    console.log('[FlowThing] Performance mode changing to:', value);
+                    onSettingChange('performanceMode', value);
+                  } catch (error) {
+                    console.error('[FlowThing] Error changing performance mode:', error);
+                    // Fallback to balanced mode if there's an error
+                    onSettingChange('performanceMode', 'balanced');
+                  }
               }}
               className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
