@@ -1,9 +1,9 @@
 import React from 'react';
-import { DeskVizorSettings, AUDIO_SOURCE_OPTIONS } from '../types/visualization';
+import { FlowThingSettings, AUDIO_SOURCE_OPTIONS } from '../types/visualization';
 
 interface SettingsPanelProps {
-  settings: DeskVizorSettings;
-  onSettingChange: (key: keyof DeskVizorSettings, value: any) => void;
+  settings: FlowThingSettings;
+  onSettingChange: (key: keyof FlowThingSettings, value: any) => void;
   isOpen: boolean;
   onClose: () => void;
 }
