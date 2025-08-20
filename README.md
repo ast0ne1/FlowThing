@@ -45,7 +45,7 @@ A music visualizer app for DeskThing with multiple visualization types, customiz
 
 ### Installation
 
-1. **Clone or download** the DeskVizor app
+1. **Clone or download** the FlowThing app
 2. **Install dependencies:**
    ```bash
    npm install
@@ -141,7 +141,7 @@ A music visualizer app for DeskThing with multiple visualization types, customiz
 
 ## Contributing
 
-Feel free to contribute to DeskVizor by:
+Feel free to contribute to FlowThing by:
 - Reporting bugs
 - Suggesting new features
 - Submitting pull requests
@@ -150,3 +150,4 @@ Feel free to contribute to DeskVizor by:
 ## License
 
 This project is part of the DeskThing ecosystem and follows the same licensing terms.
+
