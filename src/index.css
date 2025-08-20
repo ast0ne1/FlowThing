@@ -1,0 +1,232 @@
+button {
+  background: transparent;
+  background-color: transparent;
+
+  border: none;
+}
+
+button:focus {
+  outline: none;
+  border: none;
+}
+
+button:active {
+  outline: none;
+  border: none;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Prevent body scroll when panels are open on mobile */
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Custom slider styles */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+}
+
+/* Panel animations */
+.panel-enter {
+  transform: translateX(100%);
+}
+
+.panel-enter-active {
+  transform: translateX(0%);
+  transition: transform 300ms ease-in-out;
+}
+
+.panel-exit {
+  transform: translateX(0%);
+}
+
+.panel-exit-active {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in-out;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 640px) {
+  /* Full screen panel container */
+  .panel-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* Dynamic viewport height for mobile */
+    z-index: 9999 !important;
+    transform: none !important;
+  }
+  
+  /* Panel content with proper scrolling */
+  .panel-content {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 12px !important;
+    padding-bottom: 60px !important; /* Extra bottom padding */
+    box-sizing: border-box !important;
+  }
+  
+  /* Panel slide animations for mobile */
+  .panel-container.translate-x-full {
+    transform: translateX(100%) !important;
+  }
+  
+  .panel-container.-translate-x-full {
+    transform: translateX(-100%) !important;
+  }
+  
+  .panel-container.translate-x-0 {
+    transform: translateX(0%) !important;
+  }
+  
+  /* Panel toggle adjustments */
+  .panel-toggle {
+    width: 48px !important;
+    z-index: 1000 !important;
+    position: fixed !important;
+  }
+  
+  .panel-toggle > div > div {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  /* Touch-friendly controls */
+  .panel-content button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 8px 12px !important;
+    touch-action: manipulation !important;
+  }
+  
+  .panel-content input[type="range"] {
+    min-height: 44px !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+  }
+  
+  .panel-content select {
+    min-height: 44px !important;
+    padding: 12px !important;
+    touch-action: manipulation !important;
+  }
+  
+  .panel-content input[type="color"] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Color tile buttons */
+  .panel-content button[style*="backgroundColor"] {
+    min-width: 32px !important;
+    min-height: 32px !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Better spacing for mobile */
+  .panel-content > div {
+    margin-bottom: 20px !important;
+  }
+  
+  /* Sticky header */
+  .panel-content .sticky {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    backdrop-filter: blur(8px) !important;
+  }
+  
+  /* Scrollable content areas */
+  .visualization-list,
+  .settings-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-bottom: 40px !important;
+  }
+  
+  /* Visualization option cards */
+  .visualization-list > div {
+    min-height: 60px !important;
+    touch-action: manipulation !important;
+  }
+}
+
+/* Visualization canvas */
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Panel toggle areas */
+.panel-toggle {
+  pointer-events: auto;
+  transition: all 0.2s ease-in-out;
+}
+
+.panel-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}

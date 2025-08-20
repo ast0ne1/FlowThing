@@ -1,0 +1,519 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import VisualizationCanvas from './components/VisualizationCanvas';
+import SettingsPanel from './components/SettingsPanel';
+import VisualizationSelector from './components/VisualizationSelector';
+import { DeskVizorSettings, defaultSettings, VISUALIZATION_OPTIONS } from './types/visualization';
+
+// DeskThing client-side API (if available)
+declare global {
+  interface Window {
+    DeskThing?: {
+      on: (event: string, callback: (data: any) => void) => void;
+      sendData: (data: any) => void;
+      getSetting: (key: string) => any;
+      setSetting: (key: string, value: any) => void;
+    };
+  }
+}
+
+const App: React.FC = () => {
+  const [settings, setSettings] = useState<DeskVizorSettings>(defaultSettings);
+  const [isVisualizationPanelOpen, setIsVisualizationPanelOpen] = useState(false);
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+  const [audioData, setAudioData] = useState<number[]>([]);
+  const [audioSource, setAudioSource] = useState<'mock' | 'deskthing' | 'microphone' | 'system'>(() => {
+    try {
+      return settings?.audioSource || 'mock';
+    } catch (error) {
+      console.warn('[DeskVizor] Error initializing audioSource, using default:', error);
+      return 'mock';
+    }
+  });
+
+  // Load settings from localStorage on startup
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('deskvizor-settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        
+        // Handle migration from old colorScheme to new backgroundColor/primaryColor
+        if (parsed.colorScheme && !parsed.backgroundColor && !parsed.primaryColor) {
+          parsed.backgroundColor = "#000000"; // Default black background
+          parsed.primaryColor = parsed.colorScheme; // Use old colorScheme as primary color
+          delete parsed.colorScheme; // Remove old setting
+          console.log('[DeskVizor] Migrated colorScheme to backgroundColor/primaryColor');
+        }
+        
+        setSettings(prev => ({ ...prev, ...parsed }));
+        if (parsed.audioSource && typeof parsed.audioSource === 'string') {
+          setAudioSource(parsed.audioSource as 'mock' | 'deskthing' | 'microphone' | 'system');
+        }
+        console.log('[DeskVizor] Loaded settings from localStorage:', parsed);
+      }
+    } catch (error) {
+      console.warn('[DeskVizor] Failed to load settings from localStorage:', error);
+    }
+
+    // Listen for settings updates from DeskThing if available
+    if (window.DeskThing) {
+      window.DeskThing.on('settings', (newSettings: any) => {
+        try {
+          console.log('[DeskVizor] Received settings from DeskThing:', newSettings);
+          if (newSettings && typeof newSettings === 'object') {
+            setSettings(prev => ({ ...prev, ...newSettings }));
+            if (newSettings.audioSource && typeof newSettings.audioSource === 'string') {
+              setAudioSource(newSettings.audioSource as 'mock' | 'deskthing' | 'microphone' | 'system');
+            }
+            // Also save to localStorage as backup
+            localStorage.setItem('deskvizor-settings', JSON.stringify({ ...settings, ...newSettings }));
+          }
+        } catch (error) {
+          console.error('[DeskVizor] Error processing DeskThing settings:', error);
+        }
+      });
+    }
+  }, []);
+
+  // Handle setting changes with persistence
+  const handleSettingChange = useCallback((key: keyof DeskVizorSettings, value: any) => {
+    try {
+      console.log(`[DeskVizor] Setting changed: ${key} = ${value}`);
+      
+      if (!settings || typeof settings !== 'object') {
+        console.warn('[DeskVizor] Settings object is invalid, cannot update');
+        return;
+      }
+      
+      const newSettings = { ...settings, [key]: value };
+      setSettings(newSettings);
+      
+      // Update audio source if it changed
+      if (key === 'audioSource' && typeof value === 'string') {
+        setAudioSource(value as 'mock' | 'deskthing' | 'microphone' | 'system');
+      }
+      
+      // Save to localStorage immediately
+      try {
+        localStorage.setItem('deskvizor-settings', JSON.stringify(newSettings));
+      } catch (error) {
+        console.warn('[DeskVizor] Failed to save settings to localStorage:', error);
+      }
+      
+      // Send to DeskThing if available
+      if (window.DeskThing && window.DeskThing.setSetting) {
+        try {
+          window.DeskThing.setSetting(key, value);
+        } catch (error) {
+          console.warn('[DeskVizor] Failed to send setting to DeskThing:', error);
+        }
+      }
+    } catch (error) {
+      console.error('[DeskVizor] Error in handleSettingChange:', error);
+    }
+  }, [settings]);
+
+  // Toggle panels
+  const toggleVisualizationPanel = useCallback(() => {
+    setIsVisualizationPanelOpen(prev => !prev);
+    if (isSettingsPanelOpen) setIsSettingsPanelOpen(false);
+  }, [isSettingsPanelOpen]);
+
+  const toggleSettingsPanel = useCallback(() => {
+    setIsSettingsPanelOpen(prev => !prev);
+    if (isVisualizationPanelOpen) setIsVisualizationPanelOpen(false);
+  }, [isVisualizationPanelOpen]);
+
+  // Close panels when clicking outside (settings are already saved by handleSettingChange)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.panel') && !target.closest('.panel-toggle')) {
+        // Settings are automatically saved when changed, so safe to close panels
+        setIsVisualizationPanelOpen(false);
+        setIsSettingsPanelOpen(false);
+      }
+    };
+
+    // Also close panels on Escape key
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsVisualizationPanelOpen(false);
+        setIsSettingsPanelOpen(false);
+      }
+    };
+
+    // Mobile-friendly touch gestures for closing panels
+    const handleTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      const target = event.target as HTMLElement;
+      
+      // Only handle touches on panels, not on toggle areas
+      if (target.closest('.panel') && !target.closest('.panel-toggle')) {
+        const panel = target.closest('.panel');
+        if (panel) {
+          const rect = panel.getBoundingClientRect();
+          const startX = touch.clientX;
+          const startY = touch.clientY;
+          
+          const handleTouchMove = (moveEvent: TouchEvent) => {
+            const moveTouch = moveEvent.touches[0];
+            const deltaX = moveTouch.clientX - startX;
+            const deltaY = moveTouch.clientY - startY;
+            
+            // If swiping left on left panel or right on right panel, close it
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+              if ((panel.classList.contains('left-panel') && deltaX < 0) ||
+                  (panel.classList.contains('right-panel') && deltaX > 0)) {
+                setIsVisualizationPanelOpen(false);
+                setIsSettingsPanelOpen(false);
+                document.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', handleTouchEnd);
+              }
+            }
+          };
+          
+          const handleTouchEnd = () => {
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+          };
+          
+          document.addEventListener('touchmove', handleTouchMove);
+          document.addEventListener('touchend', handleTouchEnd);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('touchstart', handleTouchStart);
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
+
+  // Auto-change visualization timer
+  useEffect(() => {
+    if (!settings?.autoChangeInterval || settings.autoChangeInterval === 0) return;
+
+         const interval = setInterval(() => {
+       const currentIndex = VISUALIZATION_OPTIONS.findIndex(opt => opt.value === settings?.visualizationType);
+      const nextIndex = (currentIndex + 1) % VISUALIZATION_OPTIONS.length;
+      handleSettingChange('visualizationType', VISUALIZATION_OPTIONS[nextIndex].value);
+         }, (settings?.autoChangeInterval || 30) * 1000);
+
+         return () => clearInterval(interval);
+   }, [settings?.autoChangeInterval, settings?.visualizationType, handleSettingChange]);
+
+  // Audio data management with audio source integration
+  useEffect(() => {
+    let audioInterval: NodeJS.Timeout;
+    
+         const initializeAudio = async () => {
+       try {
+         const currentAudioSource = settings?.audioSource || 'mock';
+         if (currentAudioSource === 'deskthing' && window.DeskThing) {
+          console.log('[DeskVizor] Attempting to connect to DeskThing audio...');
+          
+          // Listen for audio data from DeskThing
+          window.DeskThing.on('audio', (audioData: any) => {
+            console.log('[DeskVizor] Received audio data from DeskThing:', audioData);
+            if (audioData.frequencies && Array.isArray(audioData.frequencies)) {
+              setAudioData(audioData.frequencies);
+              setAudioSource('deskthing');
+            }
+          });
+          
+          // Request audio data from DeskThing
+          window.DeskThing.sendData({
+            app: 'deskvizor',
+            type: 'audio_request',
+            request: 'start_stream'
+          });
+          
+                 } else if (currentAudioSource === 'system') {
+          console.log('[DeskVizor] Attempting to capture system audio...');
+          
+          try {
+            const systemAudioStream = await captureSystemAudio();
+            if (systemAudioStream) {
+              startSystemAudio(systemAudioStream);
+            } else {
+              console.log('[DeskVizor] System audio capture failed, falling back to mock data');
+              startMockAudio();
+            }
+          } catch (error) {
+            console.warn('[DeskVizor] System audio failed, using mock data:', error);
+            startMockAudio();
+          }
+         } else if (currentAudioSource === 'microphone') {
+           console.log('[DeskVizor] Using microphone audio...');
+          
+          try {
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            startMicrophoneAudio(micStream);
+          } catch (error) {
+            console.warn('[DeskVizor] Microphone audio failed, using mock data:', error);
+            startMockAudio();
+          }
+        } else {
+          console.log('[DeskVizor] Using mock audio data...');
+          startMockAudio();
+        }
+      } catch (error) {
+        console.error('[DeskVizor] Audio initialization failed:', error);
+        startMockAudio();
+      }
+    };
+    
+    // Try to capture system audio (what's playing through speakers/headphones)
+    const captureSystemAudio = async (): Promise<MediaStream | null> => {
+      try {
+        console.log('[DeskVizor] Attempting to capture system audio...');
+        
+        // Method 1: Try to get system audio via getDisplayMedia (Chrome/Edge)
+        if (navigator.mediaDevices.getDisplayMedia) {
+          try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ 
+              video: false, 
+              audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+              }
+            });
+            
+            // Check if we actually got audio tracks
+            const audioTracks = stream.getAudioTracks();
+            if (audioTracks.length > 0) {
+              console.log('[DeskVizor] System audio captured via getDisplayMedia');
+              return stream;
+            } else {
+              console.log('[DeskVizor] getDisplayMedia returned no audio tracks');
+              stream.getTracks().forEach(track => track.stop());
+            }
+          } catch (error) {
+            console.log('[DeskVizor] getDisplayMedia failed:', error);
+          }
+        }
+        
+        // Method 2: Try to get system audio via getUserMedia with specific constraints
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              // Try to get system audio if available
+              mandatory: {
+                chromeMediaSource: 'desktop'
+              }
+            } as any
+          });
+          
+          console.log('[DeskVizor] System audio captured via getUserMedia');
+          return stream;
+        } catch (error) {
+          console.log('[DeskVizor] getUserMedia system audio failed:', error);
+        }
+        
+        // Method 3: Try to get system audio via desktop capture (if available)
+        if ((navigator as any).getUserMedia) {
+          try {
+            const stream = await (navigator as any).getUserMedia({
+              audio: {
+                mandatory: {
+                  chromeMediaSource: 'desktop',
+                  chromeMediaSourceId: 'desktop'
+                }
+              }
+            });
+            
+            console.log('[DeskVizor] Legacy getUserMedia system audio failed');
+            return stream;
+          } catch (error) {
+            console.log('[DeskVizor] Legacy getUserMedia system audio failed:', error);
+          }
+        }
+        
+        console.log('[DeskVizor] No system audio capture method available');
+        return null;
+        
+      } catch (error) {
+        console.error('[DeskVizor] System audio capture failed:', error);
+        return null;
+      }
+    };
+    
+    // Start system audio processing
+    const startSystemAudio = (stream: MediaStream) => {
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(stream);
+        
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        const updateAudioData = () => {
+          analyser.getByteFrequencyData(dataArray);
+          const normalizedData = Array.from(dataArray).map(value => value / 255);
+          setAudioData(normalizedData);
+        };
+        
+        audioInterval = setInterval(updateAudioData, 100);
+        setAudioSource('system');
+        console.log('[DeskVizor] System audio processing started');
+        
+      } catch (error) {
+        console.error('[DeskVizor] System audio processing failed:', error);
+        startMockAudio();
+      }
+    };
+    
+    // Start microphone audio processing
+    const startMicrophoneAudio = (stream: MediaStream) => {
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(stream);
+        
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        const updateAudioData = () => {
+          analyser.getByteFrequencyData(dataArray);
+          const normalizedData = Array.from(dataArray).map(value => value / 255);
+          setAudioData(normalizedData);
+        };
+        
+        audioInterval = setInterval(updateAudioData, 100);
+        setAudioSource('microphone');
+        console.log('[DeskVizor] Microphone audio processing started');
+        
+      } catch (error) {
+        console.error('[DeskVizor] Microphone audio processing failed:', error);
+        startMockAudio();
+      }
+    };
+    
+    const startMockAudio = () => {
+      const generateMockData = () => {
+        const data = Array.from({ length: 128 }, () => Math.random() * 0.5 + 0.1);
+        setAudioData(data);
+      };
+      
+      setAudioSource('mock');
+      audioInterval = setInterval(generateMockData, 100);
+    };
+    
+    initializeAudio();
+    
+    return () => {
+      if (audioInterval) {
+        clearInterval(audioInterval);
+      }
+      
+             // Clean up DeskThing audio connection
+       if (settings?.audioSource === 'deskthing' && window.DeskThing) {
+        window.DeskThing.sendData({
+          app: 'deskvizor',
+          type: 'audio_request',
+          request: 'stop_stream'
+        });
+      }
+    };
+     }, [settings?.audioSource]);
+
+  return (
+    <div className="w-screen h-screen bg-black relative overflow-hidden">
+      {/* Main Visualization Canvas */}
+      <div className="w-full h-full relative">
+                 <VisualizationCanvas
+           settings={settings || defaultSettings}
+          audioData={audioData}
+          isActive={isActive}
+        />
+        
+        {/* Current Visualization Indicator */}
+                 {settings?.showVisualizationName && (
+          <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg select-none pointer-events-none text-xs sm:text-sm">
+                         {VISUALIZATION_OPTIONS.find(opt => opt.value === settings?.visualizationType)?.label}
+          </div>
+        )}
+        
+        {/* Audio Source Indicator */}
+        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-50 text-white px-2 sm:px-3 py-1 rounded-lg text-xs select-none pointer-events-none">
+          {audioSource === 'deskthing' && '🎵 DeskThing Audio'}
+          {audioSource === 'system' && '🔊 System Audio'}
+          {audioSource === 'microphone' && '🎤 Microphone'}
+          {audioSource === 'mock' && '🎲 Demo Mode'}
+        </div>
+      </div>
+
+      {/* Panel Toggle Areas */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Left Panel Toggle */}
+        <div 
+          className="absolute left-0 top-0 w-12 sm:w-16 h-full panel-toggle cursor-pointer"
+          onClick={toggleVisualizationPanel}
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-l-lg flex items-center justify-center">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Panel Toggle */}
+        <div 
+          className="absolute right-0 top-0 w-12 sm:w-16 h-full panel-toggle cursor-pointer"
+          onClick={toggleSettingsPanel}
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-600 rounded-r-lg flex items-center justify-center">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Left Panel - Visualization Selector */}
+      <div className={`${isVisualizationPanelOpen ? 'panel' : ''} left-panel`}>
+                 <VisualizationSelector
+           currentType={(settings?.visualizationType || 'wave') as any}
+          onTypeChange={(type) => handleSettingChange('visualizationType', type)}
+          isOpen={isVisualizationPanelOpen}
+          onClose={() => setIsVisualizationPanelOpen(false)}
+        />
+      </div>
+
+      {/* Right Panel - Settings */}
+      <div className={`${isSettingsPanelOpen ? 'panel' : ''} right-panel`}>
+                 <SettingsPanel
+           settings={settings || defaultSettings}
+          onSettingChange={handleSettingChange}
+          isOpen={isSettingsPanelOpen}
+          onClose={() => setIsSettingsPanelOpen(false)}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default App;

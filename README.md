@@ -1,7 +1,6 @@
 # FlowThing 🎵✨
-A music visualizer app for DeskThing with multiple visualization types, customizable settings, and real-time audio response.
 
-Vibe coded with Cursor based on the DeskThing app template.
+A music visualizer app for DeskThing with multiple visualization types, customizable settings, and real-time audio response.
 
 ## Features
 
@@ -46,7 +45,7 @@ Vibe coded with Cursor based on the DeskThing app template.
 
 ### Installation
 
-1. **Clone or download** the FlowThing app
+1. **Clone or download** the DeskVizor app
 2. **Install dependencies:**
    ```bash
    npm install
@@ -142,7 +141,7 @@ Vibe coded with Cursor based on the DeskThing app template.
 
 ## Contributing
 
-Feel free to contribute to FlowThing by:
+Feel free to contribute to DeskVizor by:
 - Reporting bugs
 - Suggesting new features
 - Submitting pull requests

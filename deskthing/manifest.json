@@ -1,0 +1,23 @@
+{
+  "id": "flowthing",
+  "isWebApp": true,
+  "requires": [""],
+  "label": "Flow Thing",
+  "version": "0.11.4",
+  "version_code": "11.4",
+  "compatible_server": ["10"],
+  "compatible_client": ["10"],
+  "description": "A music visualizer app for DeskThing with multiple visualization types, customizable settings, and real-time audio response",
+  "author": "milest0ne",
+  "platforms": ["windows"],
+  "homepage": "https://deskthing.app",
+  "repository": "https://github.com/ast0ne1/FlowThing",
+  "tags": ["Web App", "Visualiser", "Music", "Audio", "Entertainment"],
+  "icon": "icons/flowthing.svg",
+  "main": "server/index.ts",
+  "requiredVersions": {
+    "server": ">=0.11.0",
+    "client": ">=0.11.0"
+  },
+  "updateUrl": "https://github.com/ast0ne1/FlowThing"
+}
