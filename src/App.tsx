@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import VisualizationCanvas from './components/VisualizationCanvas';
 import SettingsPanel from './components/SettingsPanel';
 import VisualizationSelector from './components/VisualizationSelector';
-import { DeskVizorSettings, defaultSettings, VISUALIZATION_OPTIONS } from './types/visualization';
+import { FlowThingSettings, defaultSettings, VISUALIZATION_OPTIONS } from './types/visualization';
 
 // DeskThing client-side API (if available)
 declare global {
@@ -17,7 +17,7 @@ declare global {
 }
 
 const App: React.FC = () => {
-  const [settings, setSettings] = useState<DeskVizorSettings>(defaultSettings);
+  const [settings, setSettings] = useState<FlowThingSettings>(defaultSettings);
   const [isVisualizationPanelOpen, setIsVisualizationPanelOpen] = useState(false);
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [isActive, setIsActive] = useState(true);
@@ -26,7 +26,7 @@ const App: React.FC = () => {
     try {
       return settings?.audioSource || 'mock';
     } catch (error) {
-      console.warn('[DeskVizor] Error initializing audioSource, using default:', error);
+      console.warn('[FlowThing] Error initializing audioSource, using default:', error);
       return 'mock';
     }
   });
@@ -34,7 +34,7 @@ const App: React.FC = () => {
   // Load settings from localStorage on startup
   useEffect(() => {
     try {
-      const savedSettings = localStorage.getItem('deskvizor-settings');
+      const savedSettings = localStorage.getItem('flowthing-settings');
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
         
@@ -43,46 +43,46 @@ const App: React.FC = () => {
           parsed.backgroundColor = "#000000"; // Default black background
           parsed.primaryColor = parsed.colorScheme; // Use old colorScheme as primary color
           delete parsed.colorScheme; // Remove old setting
-          console.log('[DeskVizor] Migrated colorScheme to backgroundColor/primaryColor');
+          console.log('[FlowThing] Migrated colorScheme to backgroundColor/primaryColor');
         }
         
         setSettings(prev => ({ ...prev, ...parsed }));
         if (parsed.audioSource && typeof parsed.audioSource === 'string') {
           setAudioSource(parsed.audioSource as 'mock' | 'deskthing' | 'microphone' | 'system');
         }
-        console.log('[DeskVizor] Loaded settings from localStorage:', parsed);
+        console.log('[FlowThing] Loaded settings from localStorage:', parsed);
       }
-    } catch (error) {
-      console.warn('[DeskVizor] Failed to load settings from localStorage:', error);
-    }
+          } catch (error) {
+        console.warn('[FlowThing] Failed to load settings from localStorage:', error);
+      }
 
     // Listen for settings updates from DeskThing if available
     if (window.DeskThing) {
       window.DeskThing.on('settings', (newSettings: any) => {
         try {
-          console.log('[DeskVizor] Received settings from DeskThing:', newSettings);
+          console.log('[FlowThing] Received settings from DeskThing:', newSettings);
           if (newSettings && typeof newSettings === 'object') {
             setSettings(prev => ({ ...prev, ...newSettings }));
             if (newSettings.audioSource && typeof newSettings.audioSource === 'string') {
               setAudioSource(newSettings.audioSource as 'mock' | 'deskthing' | 'microphone' | 'system');
             }
             // Also save to localStorage as backup
-            localStorage.setItem('deskvizor-settings', JSON.stringify({ ...settings, ...newSettings }));
+            localStorage.setItem('flowthing-settings', JSON.stringify({ ...settings, ...newSettings }));
           }
         } catch (error) {
-          console.error('[DeskVizor] Error processing DeskThing settings:', error);
+          console.error('[FlowThing] Error processing DeskThing settings:', error);
         }
       });
     }
   }, []);
 
   // Handle setting changes with persistence
-  const handleSettingChange = useCallback((key: keyof DeskVizorSettings, value: any) => {
+  const handleSettingChange = useCallback((key: keyof FlowThingSettings, value: any) => {
     try {
-      console.log(`[DeskVizor] Setting changed: ${key} = ${value}`);
+      console.log(`[FlowThing] Setting changed: ${key} = ${value}`);
       
       if (!settings || typeof settings !== 'object') {
-        console.warn('[DeskVizor] Settings object is invalid, cannot update');
+        console.warn('[FlowThing] Settings object is invalid, cannot update');
         return;
       }
       
@@ -96,9 +96,9 @@ const App: React.FC = () => {
       
       // Save to localStorage immediately
       try {
-        localStorage.setItem('deskvizor-settings', JSON.stringify(newSettings));
+        localStorage.setItem('flowthing-settings', JSON.stringify(newSettings));
       } catch (error) {
-        console.warn('[DeskVizor] Failed to save settings to localStorage:', error);
+        console.warn('[FlowThing] Failed to save settings to localStorage:', error);
       }
       
       // Send to DeskThing if available
@@ -106,12 +106,12 @@ const App: React.FC = () => {
         try {
           window.DeskThing.setSetting(key, value);
         } catch (error) {
-          console.warn('[DeskVizor] Failed to send setting to DeskThing:', error);
+          console.warn('[FlowThing] Failed to send setting to DeskThing:', error);
         }
       }
-    } catch (error) {
-      console.error('[DeskVizor] Error in handleSettingChange:', error);
-    }
+          } catch (error) {
+        console.error('[FlowThing] Error in handleSettingChange:', error);
+      }
   }, [settings]);
 
   // Toggle panels
@@ -217,11 +217,11 @@ const App: React.FC = () => {
        try {
          const currentAudioSource = settings?.audioSource || 'mock';
          if (currentAudioSource === 'deskthing' && window.DeskThing) {
-          console.log('[DeskVizor] Attempting to connect to DeskThing audio...');
+          console.log('[FlowThing] Attempting to connect to DeskThing audio...');
           
           // Listen for audio data from DeskThing
           window.DeskThing.on('audio', (audioData: any) => {
-            console.log('[DeskVizor] Received audio data from DeskThing:', audioData);
+            console.log('[FlowThing] Received audio data from DeskThing:', audioData);
             if (audioData.frequencies && Array.isArray(audioData.frequencies)) {
               setAudioData(audioData.frequencies);
               setAudioSource('deskthing');
@@ -230,42 +230,42 @@ const App: React.FC = () => {
           
           // Request audio data from DeskThing
           window.DeskThing.sendData({
-            app: 'deskvizor',
+            app: 'flowthing',
             type: 'audio_request',
             request: 'start_stream'
           });
           
                  } else if (currentAudioSource === 'system') {
-          console.log('[DeskVizor] Attempting to capture system audio...');
+          console.log('[FlowThing] Attempting to capture system audio...');
           
           try {
             const systemAudioStream = await captureSystemAudio();
             if (systemAudioStream) {
               startSystemAudio(systemAudioStream);
             } else {
-              console.log('[DeskVizor] System audio capture failed, falling back to mock data');
+              console.log('[FlowThing] System audio capture failed, falling back to mock data');
               startMockAudio();
             }
           } catch (error) {
-            console.warn('[DeskVizor] System audio failed, using mock data:', error);
+            console.warn('[FlowThing] System audio failed, using mock data:', error);
             startMockAudio();
           }
-         } else if (currentAudioSource === 'microphone') {
-           console.log('[DeskVizor] Using microphone audio...');
+                 } else if (currentAudioSource === 'microphone') {
+          console.log('[FlowThing] Using microphone audio...');
           
           try {
             const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             startMicrophoneAudio(micStream);
           } catch (error) {
-            console.warn('[DeskVizor] Microphone audio failed, using mock data:', error);
+            console.warn('[FlowThing] Microphone audio failed, using mock data:', error);
             startMockAudio();
           }
         } else {
-          console.log('[DeskVizor] Using mock audio data...');
+          console.log('[FlowThing] Using mock audio data...');
           startMockAudio();
         }
       } catch (error) {
-        console.error('[DeskVizor] Audio initialization failed:', error);
+        console.error('[FlowThing] Audio initialization failed:', error);
         startMockAudio();
       }
     };
@@ -273,7 +273,7 @@ const App: React.FC = () => {
     // Try to capture system audio (what's playing through speakers/headphones)
     const captureSystemAudio = async (): Promise<MediaStream | null> => {
       try {
-        console.log('[DeskVizor] Attempting to capture system audio...');
+        console.log('[FlowThing] Attempting to capture system audio...');
         
         // Method 1: Try to get system audio via getDisplayMedia (Chrome/Edge)
         if (navigator.mediaDevices.getDisplayMedia) {
@@ -290,14 +290,14 @@ const App: React.FC = () => {
             // Check if we actually got audio tracks
             const audioTracks = stream.getAudioTracks();
             if (audioTracks.length > 0) {
-              console.log('[DeskVizor] System audio captured via getDisplayMedia');
+              console.log('[FlowThing] System audio captured via getDisplayMedia');
               return stream;
             } else {
-              console.log('[DeskVizor] getDisplayMedia returned no audio tracks');
+              console.log('[FlowThing] getDisplayMedia returned no audio tracks');
               stream.getTracks().forEach(track => track.stop());
             }
           } catch (error) {
-            console.log('[DeskVizor] getDisplayMedia failed:', error);
+            console.log('[FlowThing] getDisplayMedia failed:', error);
           }
         }
         
@@ -315,10 +315,10 @@ const App: React.FC = () => {
             } as any
           });
           
-          console.log('[DeskVizor] System audio captured via getUserMedia');
+          console.log('[FlowThing] System audio captured via getUserMedia');
           return stream;
         } catch (error) {
-          console.log('[DeskVizor] getUserMedia system audio failed:', error);
+          console.log('[FlowThing] getUserMedia system audio failed:', error);
         }
         
         // Method 3: Try to get system audio via desktop capture (if available)
@@ -333,18 +333,18 @@ const App: React.FC = () => {
               }
             });
             
-            console.log('[DeskVizor] Legacy getUserMedia system audio failed');
+            console.log('[FlowThing] Legacy getUserMedia system audio failed');
             return stream;
           } catch (error) {
-            console.log('[DeskVizor] Legacy getUserMedia system audio failed:', error);
+            console.log('[FlowThing] Legacy getUserMedia system audio failed:', error);
           }
         }
         
-        console.log('[DeskVizor] No system audio capture method available');
+        console.log('[FlowThing] No system audio capture method available');
         return null;
         
       } catch (error) {
-        console.error('[DeskVizor] System audio capture failed:', error);
+        console.error('[FlowThing] System audio capture failed:', error);
         return null;
       }
     };
@@ -370,10 +370,10 @@ const App: React.FC = () => {
         
         audioInterval = setInterval(updateAudioData, 100);
         setAudioSource('system');
-        console.log('[DeskVizor] System audio processing started');
+        console.log('[FlowThing] System audio processing started');
         
       } catch (error) {
-        console.error('[DeskVizor] System audio processing failed:', error);
+        console.error('[FlowThing] System audio processing failed:', error);
         startMockAudio();
       }
     };
@@ -399,10 +399,10 @@ const App: React.FC = () => {
         
         audioInterval = setInterval(updateAudioData, 100);
         setAudioSource('microphone');
-        console.log('[DeskVizor] Microphone audio processing started');
+        console.log('[FlowThing] Microphone audio processing started');
         
       } catch (error) {
-        console.error('[DeskVizor] Microphone audio processing failed:', error);
+        console.error('[FlowThing] Microphone audio processing failed:', error);
         startMockAudio();
       }
     };
@@ -427,7 +427,7 @@ const App: React.FC = () => {
              // Clean up DeskThing audio connection
        if (settings?.audioSource === 'deskthing' && window.DeskThing) {
         window.DeskThing.sendData({
-          app: 'deskvizor',
+          app: 'flowthing',
           type: 'audio_request',
           request: 'stop_stream'
         });
