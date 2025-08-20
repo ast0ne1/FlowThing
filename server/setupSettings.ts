@@ -31,12 +31,12 @@ export function setupSettings() {
   try {
     // Use the same structure as Spotify - object with setting IDs as keys
     const deskThingSettings = {
-      [DeskVizorSettingIDs.AUDIO_SENSITIVITY]: {
-        id: DeskVizorSettingIDs.AUDIO_SENSITIVITY,
+      [FlowThingSettingIDs.AUDIO_SENSITIVITY]: {
+        id: FlowThingSettingIDs.AUDIO_SENSITIVITY,
         type: SETTING_TYPES.RANGE,
         label: "Audio Sensitivity",
         description: "Adjust how sensitive the visualization is to audio input",
-        value: defaultSettings[DeskVizorSettingIDs.AUDIO_SENSITIVITY],
+        value: defaultSettings[FlowThingSettingIDs.AUDIO_SENSITIVITY],
         min: 1,
         max: 100,
         step: 1
