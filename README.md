@@ -21,7 +21,7 @@ This PoC has been Vibe coded with Cursor based on Riprod's DeskThing app templat
 - Audio sensitivity control
 - Background and primary color selection
 - Animation speed adjustment
-- Multiple audio source options (DeskThing, System, Microphone, Mock)
+- Multiple audio source options (System, Microphone, Mock)
 - Auto-change visualization timer
 - Visualization name display toggle
 - Performance mode selection (Quality, Balanced, Performance)
@@ -93,8 +93,7 @@ This PoC has been Vibe coded with Cursor based on Riprod's DeskThing app templat
 - **Settings Panel (Right):** Fine-tune all visualization parameters
 
 ### Audio Selection
-- **DeskThing Audio:** Uses DeskThing's audio system [PLACEHOLDER ONLY - NOT IMPLEMENTED]
-- **System Audio:** Captures audio playing through speakers/headphones [PLACEHOLDER ONLY - NOT IMPLEMENTED]
+- **System Audio:** Captures audio playing through system audio [PLACEHOLDER ONLY - NOT IMPLEMENTED]
 - **Microphone:** Uses microphone input for audio visualization [WINDOWS ONLY]
 - **Mock Mode:** Demo mode with random audio data for testing
 
@@ -162,6 +161,7 @@ This project is open source. See LICENSE file for details.
 ---
 
 **Made for DeskThing** - Enhance your smart display with a music visualiser!
+
 
 
 
