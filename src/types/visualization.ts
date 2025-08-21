@@ -74,20 +74,15 @@ export const VISUALIZATION_OPTIONS: VisualizationOption[] = [
 
 export interface AudioSourceOption {
   label: string;
-  value: 'deskthing' | 'system' | 'microphone' | 'mock';
+  value: 'system' | 'microphone' | 'mock';
   description: string;
 }
 
 export const AUDIO_SOURCE_OPTIONS: AudioSourceOption[] = [
   {
-    label: "🎵 DeskThing Audio",
-    value: "deskthing",
-    description: "Use audio from DeskThing server when available"
-  },
-  {
     label: "🔊 System Audio",
     value: "system",
-    description: "Capture audio playing through your speakers/headphones"
+    description: "Capture all system audio including DeskThing music and other applications"
   },
   {
     label: "🎤 Microphone",
@@ -108,7 +103,7 @@ export const defaultSettings: FlowThingSettings = {
   backgroundColor: "#000000",
   primaryColor: "#667eea",
   animationSpeed: 50,
-  audioSource: "mock",
+  audioSource: "system",
   autoChangeInterval: 30,
   showVisualizationName: true,
   performanceMode: "balanced"
