@@ -161,7 +161,8 @@ This project is open source. See LICENSE file for details.
 
 ---
 
-**Made for DeskThing** - Enhance your smart display with powerful webhook automation!
+**Made for DeskThing** - Enhance your smart display with a music visualiser!
+
 
 
 
