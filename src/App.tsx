@@ -30,6 +30,8 @@ const App: React.FC = () => {
       return 'mock';
     }
   });
+  const [showAudioIndicator, setShowAudioIndicator] = useState(true);
+  const [lastAudioSource, setLastAudioSource] = useState(audioSource);
 
   // Load settings from localStorage on startup
   useEffect(() => {
@@ -75,6 +77,22 @@ const App: React.FC = () => {
       });
     }
   }, []);
+
+  // Handle audio source changes and show indicator briefly
+  useEffect(() => {
+    if (audioSource !== lastAudioSource) {
+      setShowAudioIndicator(true);
+      setLastAudioSource(audioSource);
+      
+      // Hide indicator after delay (shorter for Demo Mode)
+      const delay = audioSource === 'mock' ? 2000 : 4000; // 2s for Demo, 4s for others
+      const timer = setTimeout(() => {
+        setShowAudioIndicator(false);
+      }, delay);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [audioSource, lastAudioSource]);
 
   // Handle setting changes with persistence
   const handleSettingChange = useCallback((key: keyof FlowThingSettings, value: any) => {
@@ -463,33 +481,18 @@ const App: React.FC = () => {
 
       {/* Panel Toggle Areas */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Left Panel Toggle */}
+        {/* Left Panel Toggle - Clickable edge without icon */}
         <div 
-          className="absolute left-0 top-0 w-12 sm:w-16 h-full panel-toggle cursor-pointer"
+          className="absolute left-0 top-0 w-8 h-full panel-toggle cursor-pointer"
           onClick={toggleVisualizationPanel}
         >
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-l-lg flex items-center justify-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </div>
-          </div>
         </div>
 
-        {/* Right Panel Toggle */}
+        {/* Right Panel Toggle - Clickable edge without icon */}
         <div 
-          className="absolute right-0 top-0 w-12 sm:w-16 h-full panel-toggle cursor-pointer"
+          className="absolute right-0 top-0 w-8 h-full panel-toggle cursor-pointer"
           onClick={toggleSettingsPanel}
         >
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-600 rounded-r-lg flex items-center justify-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-          </div>
         </div>
       </div>
 
