@@ -4,7 +4,7 @@ export interface FlowThingSettings {
   backgroundColor: string;
   primaryColor: string;
   animationSpeed: number;
-  audioSource: 'deskthing' | 'system' | 'microphone' | 'mock';
+  audioSource: 'system' | 'microphone' | 'mock';
   autoChangeInterval: number;
   showVisualizationName: boolean;
   performanceMode: 'quality' | 'balanced' | 'performance';
