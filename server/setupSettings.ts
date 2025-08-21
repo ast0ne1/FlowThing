@@ -72,7 +72,6 @@ export function setupSettings() {
         description: "Choose the audio source for visualizations",
         value: defaultSettings[FlowThingSettingIDs.AUDIO_SOURCE],
         options: [
-          { label: "🎵 DeskThing Audio", value: "deskthing" },
           { label: "🔊 System Audio", value: "system" },
           { label: "🎤 Microphone", value: "microphone" },
           { label: "🎲 Demo Mode", value: "mock" }
