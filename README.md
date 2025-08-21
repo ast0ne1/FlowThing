@@ -2,7 +2,7 @@
 
 A music visualizer app for DeskThing with multiple visualization types, customizable settings, and real-time audio response.
 
-Vibe coded with Cursor based on Riprod's DeskThing app template.
+This PoC has been Vibe coded with Cursor based on Riprod's DeskThing app template.
 
 ## Features
 
@@ -92,10 +92,10 @@ Vibe coded with Cursor based on Riprod's DeskThing app template.
 - **Visualization Selector (Left):** Choose from 9 different visualization types
 - **Settings Panel (Right):** Fine-tune all visualization parameters
 
-### Audio Integration
-- **DeskThing Audio:** Uses DeskThing's audio system when available
-- **System Audio:** Captures audio playing through speakers/headphones
-- **Microphone:** Uses microphone input for audio visualization
+### Audio Selection
+- **DeskThing Audio:** Uses DeskThing's audio system [PLACEHOLDER ONLY - NOT IMPLEMENTED]
+- **System Audio:** Captures audio playing through speakers/headphones [PLACEHOLDER ONLY - NOT IMPLEMENTED]
+- **Microphone:** Uses microphone input for audio visualization [WINDOWS ONLY]
 - **Mock Mode:** Demo mode with random audio data for testing
 
 ### Performance Modes
@@ -152,5 +152,6 @@ Feel free to contribute to FlowThing by:
 ## License
 
 This project is part of the DeskThing ecosystem and follows the same licensing terms.
+
 
 
