@@ -29,8 +29,8 @@ const App: React.FC = () => {
       return 'system';
     }
   });
-  const [showAudioIndicator, setShowAudioIndicator] = useState(true);
-  const [lastAudioSource, setLastAudioSource] = useState(audioSource);
+  const [showAudioIndicator, setShowAudioIndicator] = useState(false);
+  const [lastAudioSource, setLastAudioSource] = useState<string | null>(null);
 
   // Load settings from localStorage on startup
   useEffect(() => {
@@ -53,9 +53,9 @@ const App: React.FC = () => {
         }
         console.log('[FlowThing] Loaded settings from localStorage:', parsed);
       }
-          } catch (error) {
-        console.warn('[FlowThing] Failed to load settings from localStorage:', error);
-      }
+    } catch (error) {
+      console.warn('[FlowThing] Failed to load settings from localStorage:', error);
+    }
 
     // Listen for settings updates from DeskThing if available
     if (window.DeskThing) {
@@ -79,9 +79,9 @@ const App: React.FC = () => {
 
   // Handle audio source changes and show indicator briefly
   useEffect(() => {
-    if (audioSource !== lastAudioSource) {
+    // Only show indicator if this is a real change (not initial load)
+    if (lastAudioSource !== null && audioSource !== lastAudioSource) {
       setShowAudioIndicator(true);
-      setLastAudioSource(audioSource);
       
       // Hide indicator after delay (shorter for Demo Mode)
       const delay = audioSource === 'mock' ? 2000 : 4000; // 2s for Demo, 4s for others
@@ -91,6 +91,9 @@ const App: React.FC = () => {
       
       return () => clearTimeout(timer);
     }
+    
+    // Update lastAudioSource for next comparison
+    setLastAudioSource(audioSource);
   }, [audioSource, lastAudioSource]);
 
   // Handle setting changes with persistence
