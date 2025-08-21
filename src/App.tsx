@@ -20,14 +20,13 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<FlowThingSettings>(defaultSettings);
   const [isVisualizationPanelOpen, setIsVisualizationPanelOpen] = useState(false);
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
-  const [isActive, setIsActive] = useState(true);
   const [audioData, setAudioData] = useState<number[]>([]);
-  const [audioSource, setAudioSource] = useState<'mock' | 'deskthing' | 'microphone' | 'system'>(() => {
+  const [audioSource, setAudioSource] = useState<'system' | 'microphone' | 'mock'>(() => {
     try {
-      return settings?.audioSource || 'mock';
+      return (settings?.audioSource as 'system' | 'microphone' | 'mock') || 'system';
     } catch (error) {
       console.warn('[FlowThing] Error initializing audioSource, using default:', error);
-      return 'mock';
+      return 'system';
     }
   });
   const [showAudioIndicator, setShowAudioIndicator] = useState(true);
@@ -50,7 +49,7 @@ const App: React.FC = () => {
         
         setSettings(prev => ({ ...prev, ...parsed }));
         if (parsed.audioSource && typeof parsed.audioSource === 'string') {
-          setAudioSource(parsed.audioSource as 'mock' | 'deskthing' | 'microphone' | 'system');
+          setAudioSource(parsed.audioSource as 'system' | 'microphone' | 'mock');
         }
         console.log('[FlowThing] Loaded settings from localStorage:', parsed);
       }
@@ -66,7 +65,7 @@ const App: React.FC = () => {
           if (newSettings && typeof newSettings === 'object') {
             setSettings(prev => ({ ...prev, ...newSettings }));
             if (newSettings.audioSource && typeof newSettings.audioSource === 'string') {
-              setAudioSource(newSettings.audioSource as 'mock' | 'deskthing' | 'microphone' | 'system');
+              setAudioSource(newSettings.audioSource as 'system' | 'microphone' | 'mock');
             }
             // Also save to localStorage as backup
             localStorage.setItem('flowthing-settings', JSON.stringify({ ...settings, ...newSettings }));
@@ -109,7 +108,7 @@ const App: React.FC = () => {
       
       // Update audio source if it changed
       if (key === 'audioSource' && typeof value === 'string') {
-        setAudioSource(value as 'mock' | 'deskthing' | 'microphone' | 'system');
+        setAudioSource(value as 'system' | 'microphone' | 'mock');
       }
       
       // Save to localStorage immediately
@@ -234,26 +233,7 @@ const App: React.FC = () => {
          const initializeAudio = async () => {
        try {
          const currentAudioSource = settings?.audioSource || 'mock';
-         if (currentAudioSource === 'deskthing' && window.DeskThing) {
-          console.log('[FlowThing] Attempting to connect to DeskThing audio...');
-          
-          // Listen for audio data from DeskThing
-          window.DeskThing.on('audio', (audioData: any) => {
-            console.log('[FlowThing] Received audio data from DeskThing:', audioData);
-            if (audioData.frequencies && Array.isArray(audioData.frequencies)) {
-              setAudioData(audioData.frequencies);
-              setAudioSource('deskthing');
-            }
-          });
-          
-          // Request audio data from DeskThing
-          window.DeskThing.sendData({
-            app: 'flowthing',
-            type: 'audio_request',
-            request: 'start_stream'
-          });
-          
-                 } else if (currentAudioSource === 'system') {
+         if (currentAudioSource === 'system') {
           console.log('[FlowThing] Attempting to capture system audio...');
           
           try {
@@ -443,7 +423,7 @@ const App: React.FC = () => {
       }
       
              // Clean up DeskThing audio connection
-       if (settings?.audioSource === 'deskthing' && window.DeskThing) {
+       if (settings?.audioSource === 'system' && window.DeskThing) {
         window.DeskThing.sendData({
           app: 'flowthing',
           type: 'audio_request',
@@ -460,7 +440,7 @@ const App: React.FC = () => {
                  <VisualizationCanvas
            settings={settings || defaultSettings}
           audioData={audioData}
-          isActive={isActive}
+          isActive={true}
         />
         
         {/* Current Visualization Indicator */}
@@ -471,12 +451,13 @@ const App: React.FC = () => {
         )}
         
         {/* Audio Source Indicator */}
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-50 text-white px-2 sm:px-3 py-1 rounded-lg text-xs select-none pointer-events-none">
-          {audioSource === 'deskthing' && '🎵 DeskThing Audio'}
-          {audioSource === 'system' && '🔊 System Audio'}
-          {audioSource === 'microphone' && '🎤 Microphone'}
-          {audioSource === 'mock' && '🎲 Demo Mode'}
-        </div>
+        {showAudioIndicator && (
+          <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-50 text-white px-2 sm:px-3 py-1 rounded-lg text-xs select-none pointer-events-none transition-opacity duration-500">
+            {audioSource === 'system' && '🔊 System Audio'}
+            {audioSource === 'microphone' && '🎤 Microphone'}
+            {audioSource === 'mock' && '🎲 Demo Mode'}
+          </div>
+        )}
       </div>
 
       {/* Panel Toggle Areas */}
