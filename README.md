@@ -143,15 +143,25 @@ This PoC has been Vibe coded with Cursor based on Riprod's DeskThing app templat
 
 ## Contributing
 
-Feel free to contribute to FlowThing by:
-- Reporting bugs
-- Suggesting new features
-- Submitting pull requests
-- Improving documentation
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## License
 
-This project is part of the DeskThing ecosystem and follows the same licensing terms.
+This project is open source. See LICENSE file for details.
+
+## Support
+
+- **Issues**: Report bugs and feature requests via GitHub issues
+- **Documentation**: Additional guides available in the wiki
+- **Community**: Join the DeskThing Discord for support and discussion
+
+---
+
+**Made for DeskThing** - Enhance your smart display with powerful webhook automation!
 
 
 
