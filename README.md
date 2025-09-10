@@ -4,6 +4,11 @@ A music visualizer app for DeskThing with multiple visualization types, customiz
 
 This PoC has been Vibe coded with Cursor based on Riprod's DeskThing app template.
 
+![flowthing1](https://github.com/user-attachments/assets/4c1e45c8-4fcf-48ea-9d12-6729856811f4)
+![flowthing2](https://github.com/user-attachments/assets/051497cd-c50d-43b5-9122-079b8d9a088d)
+![flowthing3](https://github.com/user-attachments/assets/40a74406-b9b2-4a4f-9aa4-bbb228e52cd4)
+
+
 ## Features
 
 ### 🎨 Visualization Types
@@ -161,6 +166,7 @@ This project is open source. See LICENSE file for details.
 ---
 
 **Made for DeskThing** - Enhance your smart display with a music visualiser!
+
 
 
 
