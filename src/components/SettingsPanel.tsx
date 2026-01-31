@@ -263,7 +263,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </p>
           </div>
 
-          {/* Auto Change Interval */}
+          {/* Auto Change Interval
           <div>
             <label className="block text-sm font-medium mb-2">
               Auto Change Interval: {settings.autoChangeInterval}s
@@ -281,7 +281,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <span>Disabled</span>
               <span>5 min</span>
             </div>
-          </div>
+          </div> */}
 
           {/* Show Visualization Name */}
           <div className="flex items-center justify-between">

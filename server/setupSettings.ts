@@ -27,7 +27,7 @@ const defaultSettings = {
   [FlowThingSettingIDs.ANIMATION_SPEED]: 50,
   [FlowThingSettingIDs.AUDIO_SOURCE]: "system",
   [FlowThingSettingIDs.AUDIO_DEVICE]: "",
-  [FlowThingSettingIDs.AUTO_CHANGE_INTERVAL]: 30,
+  [FlowThingSettingIDs.AUTO_CHANGE_INTERVAL]: 0,
   [FlowThingSettingIDs.SHOW_VISUALIZATION_NAME]: true,
   [FlowThingSettingIDs.PERFORMANCE_MODE]: "balanced",
   [FlowThingSettingIDs.STOP_CAPTURE]: false,
@@ -263,16 +263,16 @@ export function setupSettings() {
           { label: "Loading devices...", value: "" }
         ]
       },
-      [FlowThingSettingIDs.AUTO_CHANGE_INTERVAL]: {
-        id: FlowThingSettingIDs.AUTO_CHANGE_INTERVAL,
-        type: SETTING_TYPES.RANGE,
-        label: "Auto Change Timer",
-        description: "Automatically change visualization every X seconds (0 = disabled)",
-        value: defaultSettings[FlowThingSettingIDs.AUTO_CHANGE_INTERVAL],
-        min: 0,
-        max: 300,
-        step: 10
-      },
+      // [FlowThingSettingIDs.AUTO_CHANGE_INTERVAL]: {
+      //   id: FlowThingSettingIDs.AUTO_CHANGE_INTERVAL,
+      //   type: SETTING_TYPES.RANGE,
+      //   label: "Auto Change Timer",
+      //   description: "Automatically change visualization every X seconds (0 = disabled)",
+      //   value: defaultSettings[FlowThingSettingIDs.AUTO_CHANGE_INTERVAL],
+      //   min: 0,
+      //   max: 300,
+      //   step: 10
+      // },
       [FlowThingSettingIDs.SHOW_VISUALIZATION_NAME]: {
         id: FlowThingSettingIDs.SHOW_VISUALIZATION_NAME,
         type: SETTING_TYPES.BOOLEAN,
