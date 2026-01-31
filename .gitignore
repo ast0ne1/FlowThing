@@ -40,7 +40,6 @@ pnpm-debug.log*
 bin/
 obj/
 *.dll
-*.exe
 *.pdb
 *.cache
 *.deps.json
