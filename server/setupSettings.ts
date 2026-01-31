@@ -19,7 +19,7 @@ const defaultSettings = {
   [FlowThingSettingIDs.BACKGROUND_COLOR]: "#000000",
   [FlowThingSettingIDs.PRIMARY_COLOR]: "#667eea",
   [FlowThingSettingIDs.ANIMATION_SPEED]: 50,
-  [FlowThingSettingIDs.AUDIO_SOURCE]: "mock",
+  [FlowThingSettingIDs.AUDIO_SOURCE]: "system",
   [FlowThingSettingIDs.AUTO_CHANGE_INTERVAL]: 30,
   [FlowThingSettingIDs.SHOW_VISUALIZATION_NAME]: true,
   [FlowThingSettingIDs.PERFORMANCE_MODE]: "balanced"

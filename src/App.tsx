@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createDeskThing } from '@deskthing/client';
 import VisualizationCanvas from './components/VisualizationCanvas';
 import SettingsPanel from './components/SettingsPanel';
 import VisualizationSelector from './components/VisualizationSelector';
 import { FlowThingSettings, defaultSettings, VISUALIZATION_OPTIONS } from './types/visualization';
 import { ToClientData, GenericTransitData, AudioFormatData, AudioStreamData } from './types/types';
+import { AudioProcessor } from './AudioProcessor';
 
 const DeskThing = createDeskThing<ToClientData, GenericTransitData>();
 
@@ -17,6 +18,9 @@ const App: React.FC = () => {
   const [audioFormat, setAudioFormat] = useState<AudioFormatData | null>(null);
   const [showAudioIndicator, setShowAudioIndicator] = useState(false);
   const [lastAudioSource, setLastAudioSource] = useState<string | null>(null);
+
+  // Create a single instance of AudioProcessor
+  const audioProcessor = useMemo(() => new AudioProcessor(), []);
 
   // Load settings from localStorage on startup
   useEffect(() => {
@@ -40,6 +44,19 @@ const App: React.FC = () => {
       console.warn('[FlowThing] Failed to load settings from localStorage:', error);
     }
   }, []);
+
+  // Process audio data from WebSocket
+  const processAudioData = useCallback((audioStreamData: AudioStreamData) => {
+    // Only process if audio source is set to 'system'
+    if (settings?.audioSource !== 'system') {
+      console.log('[FlowThing] Ignoring WebSocket audio - current source is:', settings?.audioSource);
+      return;
+    }
+    
+    const analysisMethod = settings?.audioAnalysisMethod || 'fft';
+    const bins = audioProcessor.processAudioData(audioStreamData, analysisMethod);
+    setAudioData(bins);
+  }, [settings?.audioAnalysisMethod, settings?.audioSource, audioProcessor]);
 
   // WebSocket Audio Stream Connection
   useEffect(() => {
@@ -125,51 +142,11 @@ const App: React.FC = () => {
       removeFormatListener();
       removeDataListener();
     };
-  }, []);
+  }, [processAudioData]);
 
-  // Process audio data from WebSocket
-  const processAudioData = (audioStreamData: AudioStreamData) => {
-    if (!audioStreamData.data || audioStreamData.data.length === 0) {
-      console.warn('[FlowThing] No audio data to process');
-      return;
-    }
-
-    console.log(`[FlowThing] Processing ${audioStreamData.data.length} bytes of audio data`);
-
-    // Convert data to Float32Array (32-bit float audio)
-    const buffer = new ArrayBuffer(audioStreamData.data.length);
-    const view = new Uint8Array(buffer);
-    audioStreamData.data.forEach((byte, i) => (view[i] = byte));
-    const float32Array = new Float32Array(buffer);
-
-    console.log(`[FlowThing] Float32Array has ${float32Array.length} samples`);
-
-    // Create frequency bins for visualization (128 bins for FlowThing visualizations)
-    const numBins = 128;
-    const samplesPerBin = Math.floor(float32Array.length / numBins);
-    const bins: number[] = [];
-
-    for (let i = 0; i < numBins; i++) {
-      const startIdx = i * samplesPerBin;
-      const endIdx = Math.min(startIdx + samplesPerBin, float32Array.length);
-      
-      // Calculate RMS (root mean square) for this bin
-      let sum = 0;
-      for (let j = startIdx; j < endIdx; j++) {
-        sum += float32Array[j] * float32Array[j];
-      }
-      const rms = Math.sqrt(sum / (endIdx - startIdx));
-      
-      // Normalize to 0-1 range (multiply by 2 for more visible amplitude)
-      bins.push(Math.min(1, rms * 2));
-    }
-
-    setAudioData(bins);
-  };
-
-  // Show audio indicator when connection status changes
+  // Show audio indicator when connection status or audio source changes
   useEffect(() => {
-    const currentSource = connected ? 'system' : 'none';
+    const currentSource = settings?.audioSource || 'mock';
     
     if (lastAudioSource !== null && currentSource !== lastAudioSource) {
       setShowAudioIndicator(true);
@@ -182,7 +159,41 @@ const App: React.FC = () => {
     }
     
     setLastAudioSource(currentSource);
-  }, [connected, lastAudioSource]);
+  }, [settings?.audioSource, lastAudioSource]);
+
+  // Mock audio generation for testing
+  useEffect(() => {
+    if (settings?.audioSource !== 'mock') {
+      return;
+    }
+
+    console.log('[FlowThing] Starting mock audio generation');
+    
+    const generateMockAudioData = () => {
+      const bins: number[] = [];
+      const time = Date.now() / 1000;
+      
+      for (let i = 0; i < 128; i++) {
+        // Create varied frequencies with different patterns
+        const bass = Math.sin(time * 2 + i * 0.1) * 0.3;
+        const mid = Math.sin(time * 4 + i * 0.2) * 0.2;
+        const treble = Math.sin(time * 8 + i * 0.3) * 0.15;
+        
+        const value = Math.abs(bass + mid + treble);
+        bins.push(Math.min(1, value));
+      }
+      
+      setAudioData(bins);
+    };
+
+    // Generate mock data at ~60 FPS
+    const interval = setInterval(generateMockAudioData, 1000 / 60);
+
+    return () => {
+      console.log('[FlowThing] Stopping mock audio generation');
+      clearInterval(interval);
+    };
+  }, [settings?.audioSource]);
 
   // Handle setting changes with persistence
   const handleSettingChange = useCallback((key: keyof FlowThingSettings, value: any) => {
@@ -278,7 +289,10 @@ const App: React.FC = () => {
         {/* Audio Source Indicator */}
         {showAudioIndicator && (
           <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-50 text-white px-2 sm:px-3 py-1 rounded-lg text-xs select-none pointer-events-none transition-opacity duration-500">
-            {connected ? '🔊 System Audio' : '❌ Disconnected'}
+            {settings?.audioSource === 'system' && connected ? '🔊 System Audio' : 
+             settings?.audioSource === 'mock' ? '🎵 Mock Audio' :
+             settings?.audioSource === 'microphone' ? '🎤 Microphone' :
+             '❌ No Audio'}
           </div>
         )}
 
