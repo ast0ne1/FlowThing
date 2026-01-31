@@ -256,18 +256,18 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Auto-change visualization timer
-  useEffect(() => {
-    if (!settings?.autoChangeInterval || settings.autoChangeInterval === 0) return;
+  // // Auto-change visualization timer
+  // useEffect(() => {
+  //   if (!settings?.autoChangeInterval || settings.autoChangeInterval === 0) return;
 
-    const interval = setInterval(() => {
-      const currentIndex = VISUALIZATION_OPTIONS.findIndex(opt => opt.value === settings?.visualizationType);
-      const nextIndex = (currentIndex + 1) % VISUALIZATION_OPTIONS.length;
-      handleSettingChange('visualizationType', VISUALIZATION_OPTIONS[nextIndex].value);
-    }, (settings?.autoChangeInterval || 30) * 1000);
+  //   const interval = setInterval(() => {
+  //     const currentIndex = VISUALIZATION_OPTIONS.findIndex(opt => opt.value === settings?.visualizationType);
+  //     const nextIndex = (currentIndex + 1) % VISUALIZATION_OPTIONS.length;
+  //     handleSettingChange('visualizationType', VISUALIZATION_OPTIONS[nextIndex].value);
+  //   }, (settings?.autoChangeInterval || 30) * 1000);
 
-    return () => clearInterval(interval);
-  }, [settings?.autoChangeInterval, settings?.visualizationType, handleSettingChange]);
+  //   return () => clearInterval(interval);
+  // }, [settings?.autoChangeInterval, settings?.visualizationType, handleSettingChange]);
 
   return (
     <div className="w-screen h-screen bg-black relative overflow-hidden">

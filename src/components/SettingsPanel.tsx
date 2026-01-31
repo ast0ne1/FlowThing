@@ -263,25 +263,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </p>
           </div>
 
-          {/* Auto Change Interval
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Auto Change Interval: {settings.autoChangeInterval}s
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="300"
-              step="10"
-              value={settings.autoChangeInterval}
-              onChange={(e) => onSettingChange('autoChangeInterval', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>Disabled</span>
-              <span>5 min</span>
-            </div>
-          </div> */}
+       
 
           {/* Show Visualization Name */}
           <div className="flex items-center justify-between">
