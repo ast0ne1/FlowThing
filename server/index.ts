@@ -1,7 +1,7 @@
 import { createDeskThing } from "@deskthing/server";
 import { ToClientData, GenericTransitData, AudioStreamData, AudioFormatData, AudioStreamStatus } from "./types";
 import { setupSettings, FlowThingSettingIDs, currentSettings, setWebSocketClient, setAudioStreamService, triggerDeviceRefresh } from './setupSettings.js';
-import { WebSocketAudioClient, WebSocketCallbacks } from './Websocketaudioclient.js';
+import { WebSocketAudioClient, WebSocketCallbacks } from './WebSocketAudioClient.js';
 import { spawn, type ChildProcess } from "child_process";
 import { join as pathJoin, dirname as pathDirname } from "path";
 import { existsSync as fsExistsSync } from "fs";
@@ -23,7 +23,7 @@ class AudioStreamService {
   constructor() {
     // Set default server path
     const appData = process.env.APPDATA || pathJoin(homedir(), 'AppData', 'Roaming');
-    this.serverExecutablePath = pathJoin(appData, "deskthing", "apps", "weatherwaves", "client", "Audio.exe");
+    this.serverExecutablePath = pathJoin(appData, "deskthing", "apps", "FlowThing", "client", "Audio.exe");
     
     DeskThing.sendLog('AudioStreamService initialized');
     

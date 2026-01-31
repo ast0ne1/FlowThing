@@ -1,1 +1,23 @@
-{"id":"weatherwaves","isWebApp":true,"requires":[""],"label":"Weather Waves","version":"0.11.0","version_code":"10.1","compatible_server":["10"],"compatible_client":["10"],"description":"A redesigned weather and spotify at a glance. For best experience,assign your 2 of your top buttons to rewind/skip using the desktop app","author":"Dammit Jeff","platforms":["windows","macos","linux"],"homepage":"https://deskthing.app","repository":"https://github.com/itsriprod/deskthing-apps","tags":[false,false],"requiredVersions":{"server":">=0.11.0","client":">=0.11.0"},"updateUrl":"https://github.com/itsriprod/deskthing-apps"}
+{
+  "id": "flowthing",
+  "isWebApp": true,
+  "requires": [""],
+  "label": "Flow Thing",
+  "version": "0.11.4",
+  "version_code": "11.4",
+  "compatible_server": ["10"],
+  "compatible_client": ["10"],
+  "description": "A music visualizer app for DeskThing with multiple visualization types, customizable settings, and real-time audio response",
+  "author": "milest0ne, iamGaven",
+  "platforms": ["windows"],
+  "homepage": "https://deskthing.app",
+  "repository": "https://github.com/ast0ne1/FlowThing",
+  "tags": ["Web App", "Visualiser", "Music", "Audio", "Entertainment"],
+  "icon": "icons/flowthing.svg",
+  "main": "server/index.ts",
+  "requiredVersions": {
+    "server": ">=0.11.0",
+    "client": ">=0.11.0"
+  },
+  "updateUrl": "https://github.com/ast0ne1/FlowThing"
+}

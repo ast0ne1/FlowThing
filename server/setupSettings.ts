@@ -1,6 +1,6 @@
 import { DeskThing } from '@deskthing/server';
 import { DESKTHING_EVENTS, SETTING_TYPES } from '@deskthing/types';
-import { WebSocketAudioClient, AudioDevice } from './Websocketaudioclient.js';
+import { WebSocketAudioClient, AudioDevice } from './WebSocketAudioClient.js';
 
 // Define setting IDs for consistency
 export const FlowThingSettingIDs = {
