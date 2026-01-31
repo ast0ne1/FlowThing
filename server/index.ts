@@ -1,6 +1,7 @@
 import { createDeskThing } from "@deskthing/server";
 import { ToClientData, GenericTransitData, AudioStreamData, AudioFormatData, AudioStreamStatus } from "./types";
 import WebSocket from 'ws';
+import { setupSettings, FlowThingSettingIDs, currentSettings } from './setupSettings.js';
 
 const DeskThing = createDeskThing<GenericTransitData, ToClientData>();
 
@@ -156,6 +157,8 @@ class AudioStreamService {
 // Create service instance
 const audioStreamService = new AudioStreamService();
 
+// Note: currentSettings is imported from setupSettings.ts and shared
+
 // Handle client requests using the generic "get" handler
 DeskThing.on("get", async (data: any) => {
   console.log("=== GET REQUEST RECEIVED ===");
@@ -184,29 +187,103 @@ DeskThing.on("disconnect", async () => {
   audioStreamService.disconnect();
 });
 
+// Handle audio data requests from client (for FlowThing compatibility)
+DeskThing.on('message', (data: any) => {
+  console.log('[AudioStream] Received message from client:', data);
+  
+  if (data.type === 'audio_request') {
+    console.log('[AudioStream] Handling audio request:', data);
+    
+    switch (data.request) {
+      case 'start_stream':
+        console.log('[AudioStream] Client requesting audio stream start');
+        audioStreamService.connect();
+        break;
+        
+      case 'stop_stream':
+        console.log('[AudioStream] Client requesting audio stream stop');
+        audioStreamService.disconnect();
+        break;
+        
+      default:
+        console.warn('[AudioStream] Unknown audio request:', data.request);
+    }
+  }
+});
+
 // Start listener - runs when the app starts
 DeskThing.on('start', async () => {
   console.log("=== AUDIO STREAM APP STARTING ===");
   DeskThing.sendLog('Audio Stream app started');
   
-  // Auto-connect on start
-  audioStreamService.connect();
-  
-  // Send initial status after a delay
-  setTimeout(() => {
-    console.log("Sending initial status to client");
-    const status = audioStreamService.getStatus();
-    DeskThing.send({ type: 'audio_stream_status', payload: status });
-  }, 1000);
-  
-  console.log("=== AUDIO STREAM APP STARTED SUCCESSFULLY ===");
+  try {
+    // Initialize FlowThing visualization settings
+    console.log('[AudioStream] Initializing FlowThing visualization settings...');
+    const settingsResult = setupSettings();
+    
+    if (settingsResult.success) {
+      console.log('[AudioStream] Settings configured successfully');
+      console.log('[AudioStream] Available settings:', Object.keys(settingsResult.settings));
+      
+      // Initialize current settings with defaults
+      Object.values(FlowThingSettingIDs).forEach(settingId => {
+        if (settingsResult.defaultSettings[settingId] !== undefined) {
+          currentSettings[settingId] = settingsResult.defaultSettings[settingId];
+        }
+      });
+      
+      console.log('[AudioStream] Current settings initialized:', currentSettings);
+    } else {
+      console.warn('[AudioStream] Settings configuration may have issues');
+    }
+    
+    // Note: Settings change listeners are already set up inside setupSettings()
+    // via DeskThing.on(DESKTHING_EVENTS.SETTINGS, ...)
+    // We just need to monitor currentSettings or add custom handling here if needed
+
+    // Auto-connect WebSocket audio stream on start
+    console.log('[AudioStream] Auto-connecting to WebSocket audio stream...');
+    audioStreamService.connect();
+    
+    // Send initial status and settings after a delay
+    setTimeout(() => {
+      console.log('[AudioStream] Sending initial data to client');
+      
+      // Send audio stream status
+      const status = audioStreamService.getStatus();
+      DeskThing.send({ type: 'audio_stream_status', payload: status });
+      console.log('[AudioStream] Audio stream status sent:', status);
+      
+      // Send initial FlowThing settings to client
+      if (Object.keys(currentSettings).length > 0) {
+        DeskThing.send({ 
+          type: 'settings', 
+          payload: currentSettings 
+        });
+        console.log('[AudioStream] Initial settings sent to client:', currentSettings);
+      }
+    }, 1000);
+    
+    console.log('[AudioStream] Server started successfully');
+    console.log('[AudioStream] Current settings state:', currentSettings);
+    console.log("=== AUDIO STREAM APP STARTED SUCCESSFULLY ===");
+    
+  } catch (error) {
+    console.error('[AudioStream] Error during startup:', error);
+    DeskThing.sendError('Audio Stream app failed to start: ' + error);
+    throw error;
+  }
 });
 
 // Handle stop event
 DeskThing.on('stop', async () => {
   console.log("=== AUDIO STREAM APP STOPPING ===");
   DeskThing.sendLog('Audio Stream app stopping...');
+  
+  // Disconnect from WebSocket
   audioStreamService.disconnect();
+  
+  console.log("=== AUDIO STREAM APP STOPPED ===");
 });
 
 export default audioStreamService;

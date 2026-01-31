@@ -1,19 +1,52 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createDeskThing } from '@deskthing/client';
-import { ToClientData, GenericTransitData, AudioFormatData, AudioStreamData, AudioStreamStatus } from './types/types';
+import VisualizationCanvas from './components/VisualizationCanvas';
+import SettingsPanel from './components/SettingsPanel';
+import VisualizationSelector from './components/VisualizationSelector';
+import { FlowThingSettings, defaultSettings, VISUALIZATION_OPTIONS } from './types/visualization';
+import { ToClientData, GenericTransitData, AudioFormatData, AudioStreamData } from './types/types';
 
 const DeskThing = createDeskThing<ToClientData, GenericTransitData>();
 
 const App: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [settings, setSettings] = useState<FlowThingSettings>(defaultSettings);
+  const [isVisualizationPanelOpen, setIsVisualizationPanelOpen] = useState(false);
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+  const [audioData, setAudioData] = useState<number[]>([]);
   const [connected, setConnected] = useState(false);
   const [audioFormat, setAudioFormat] = useState<AudioFormatData | null>(null);
+  const [showAudioIndicator, setShowAudioIndicator] = useState(false);
+  const [lastAudioSource, setLastAudioSource] = useState<string | null>(null);
 
+  // Load settings from localStorage on startup
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('flowthing-settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        
+        // Handle migration from old colorScheme to new backgroundColor/primaryColor
+        if (parsed.colorScheme && !parsed.backgroundColor && !parsed.primaryColor) {
+          parsed.backgroundColor = "#000000";
+          parsed.primaryColor = parsed.colorScheme;
+          delete parsed.colorScheme;
+          console.log('[FlowThing] Migrated colorScheme to backgroundColor/primaryColor');
+        }
+        
+        setSettings(prev => ({ ...prev, ...parsed }));
+        console.log('[FlowThing] Loaded settings from localStorage:', parsed);
+      }
+    } catch (error) {
+      console.warn('[FlowThing] Failed to load settings from localStorage:', error);
+    }
+  }, []);
+
+  // WebSocket Audio Stream Connection
   useEffect(() => {
     let invalid = false;
     let statusCheckInterval: NodeJS.Timeout | null = null;
 
-    console.log('Setting up audio stream listeners...');
+    console.log('[FlowThing] Setting up audio stream listeners...');
 
     // Listen for audio stream status updates
     const removeStatusListener = DeskThing.on('audio_stream_status', (data) => {
@@ -21,17 +54,17 @@ const App: React.FC = () => {
       console.log('✅ Received audio_stream_status event:', data);
       
       if (!data || !data.payload) {
-        DeskThing.warn('No audio stream status available');
+        console.warn('[FlowThing] No audio stream status available');
         return;
       }
       
       const payload = data.payload;
-      console.log('Connection status:', payload.connected);
+      console.log('[FlowThing] Connection status:', payload.connected);
       
       setConnected(payload.connected);
       
       if (payload.audioFormat) {
-        console.log('Audio format:', payload.audioFormat);
+        console.log('[FlowThing] Audio format:', payload.audioFormat);
         setAudioFormat(payload.audioFormat);
       }
     });
@@ -44,18 +77,18 @@ const App: React.FC = () => {
       setAudioFormat(data.payload);
     });
 
-   // Listen for audio data
-  const removeDataListener = DeskThing.on('audio_data', (data) => {
-    if (invalid) return;
-    console.log('🎵 Received audio_data event, length:', data?.payload?.length);
-    
-    if (!data || !data.payload) {
-      console.warn('No audio data payload');
-      return;
-    }
-    
-    visualizeAudio(data.payload);
-  });
+    // Listen for audio data
+    const removeDataListener = DeskThing.on('audio_data', (data) => {
+      if (invalid) return;
+      console.log('🎵 Received audio_data event, length:', data?.payload?.length);
+      
+      if (!data || !data.payload) {
+        console.warn('[FlowThing] No audio data payload');
+        return;
+      }
+      
+      processAudioData(data.payload);
+    });
 
     console.log('✅ Listeners set up!');
 
@@ -81,7 +114,7 @@ const App: React.FC = () => {
     }, 10000);
 
     return () => {
-      console.log('Cleaning up audio stream listeners...');
+      console.log('[FlowThing] Cleaning up audio stream listeners...');
       invalid = true;
       
       if (statusCheckInterval) {
@@ -94,90 +127,210 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const visualizeAudio = (audioData: AudioStreamData) => {
-  const canvas = canvasRef.current;
-  if (!canvas) {
-    console.warn('Canvas not available');
-    return;
-  }
-
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    console.warn('Canvas context not available');
-    return;
-  }
-
-  // Clear canvas
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  if (!audioData.data || audioData.data.length === 0) {
-    console.warn('No audio data to visualize');
-    return;
-  }
-
-  console.log(`Visualizing ${audioData.data.length} bytes of audio data`);
-
-  // Convert data to Float32Array (32-bit float audio)
-  const buffer = new ArrayBuffer(audioData.data.length);
-  const view = new Uint8Array(buffer);
-  audioData.data.forEach((byte, i) => (view[i] = byte));
-  const float32Array = new Float32Array(buffer);
-
-  console.log(`Float32Array has ${float32Array.length} samples`);
-
-  // Draw waveform
-  ctx.strokeStyle = '#0f0';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-
-  const step = Math.max(1, Math.floor(float32Array.length / canvas.width));
-
-  for (let i = 0; i < canvas.width; i++) {
-    const index = i * step;
-    if (index < float32Array.length) {
-      const value = float32Array[index];
-      // Normalize value to canvas height
-      const y = ((value + 1) / 2) * canvas.height;
-
-      if (i === 0) {
-        ctx.moveTo(i, y);
-      } else {
-        ctx.lineTo(i, y);
-      }
+  // Process audio data from WebSocket
+  const processAudioData = (audioStreamData: AudioStreamData) => {
+    if (!audioStreamData.data || audioStreamData.data.length === 0) {
+      console.warn('[FlowThing] No audio data to process');
+      return;
     }
-  }
 
-  ctx.stroke();
-};
+    console.log(`[FlowThing] Processing ${audioStreamData.data.length} bytes of audio data`);
+
+    // Convert data to Float32Array (32-bit float audio)
+    const buffer = new ArrayBuffer(audioStreamData.data.length);
+    const view = new Uint8Array(buffer);
+    audioStreamData.data.forEach((byte, i) => (view[i] = byte));
+    const float32Array = new Float32Array(buffer);
+
+    console.log(`[FlowThing] Float32Array has ${float32Array.length} samples`);
+
+    // Create frequency bins for visualization (128 bins for FlowThing visualizations)
+    const numBins = 128;
+    const samplesPerBin = Math.floor(float32Array.length / numBins);
+    const bins: number[] = [];
+
+    for (let i = 0; i < numBins; i++) {
+      const startIdx = i * samplesPerBin;
+      const endIdx = Math.min(startIdx + samplesPerBin, float32Array.length);
+      
+      // Calculate RMS (root mean square) for this bin
+      let sum = 0;
+      for (let j = startIdx; j < endIdx; j++) {
+        sum += float32Array[j] * float32Array[j];
+      }
+      const rms = Math.sqrt(sum / (endIdx - startIdx));
+      
+      // Normalize to 0-1 range (multiply by 2 for more visible amplitude)
+      bins.push(Math.min(1, rms * 2));
+    }
+
+    setAudioData(bins);
+  };
+
+  // Show audio indicator when connection status changes
+  useEffect(() => {
+    const currentSource = connected ? 'system' : 'none';
+    
+    if (lastAudioSource !== null && currentSource !== lastAudioSource) {
+      setShowAudioIndicator(true);
+      
+      const timer = setTimeout(() => {
+        setShowAudioIndicator(false);
+      }, 4000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    setLastAudioSource(currentSource);
+  }, [connected, lastAudioSource]);
+
+  // Handle setting changes with persistence
+  const handleSettingChange = useCallback((key: keyof FlowThingSettings, value: any) => {
+    try {
+      console.log(`[FlowThing] Setting changed: ${key} = ${value}`);
+      
+      if (!settings || typeof settings !== 'object') {
+        console.warn('[FlowThing] Settings object is invalid, cannot update');
+        return;
+      }
+      
+      const newSettings = { ...settings, [key]: value };
+      setSettings(newSettings);
+      
+      // Save to localStorage immediately
+      try {
+        localStorage.setItem('flowthing-settings', JSON.stringify(newSettings));
+      } catch (error) {
+        console.warn('[FlowThing] Failed to save settings to localStorage:', error);
+      }
+    } catch (error) {
+      console.error('[FlowThing] Error in handleSettingChange:', error);
+    }
+  }, [settings]);
+
+  // Toggle panels
+  const toggleVisualizationPanel = useCallback(() => {
+    setIsVisualizationPanelOpen(prev => !prev);
+    if (isSettingsPanelOpen) setIsSettingsPanelOpen(false);
+  }, [isSettingsPanelOpen]);
+
+  const toggleSettingsPanel = useCallback(() => {
+    setIsSettingsPanelOpen(prev => !prev);
+    if (isVisualizationPanelOpen) setIsVisualizationPanelOpen(false);
+  }, [isVisualizationPanelOpen]);
+
+  // Close panels when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.panel') && !target.closest('.panel-toggle')) {
+        setIsVisualizationPanelOpen(false);
+        setIsSettingsPanelOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsVisualizationPanelOpen(false);
+        setIsSettingsPanelOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Auto-change visualization timer
+  useEffect(() => {
+    if (!settings?.autoChangeInterval || settings.autoChangeInterval === 0) return;
+
+    const interval = setInterval(() => {
+      const currentIndex = VISUALIZATION_OPTIONS.findIndex(opt => opt.value === settings?.visualizationType);
+      const nextIndex = (currentIndex + 1) % VISUALIZATION_OPTIONS.length;
+      handleSettingChange('visualizationType', VISUALIZATION_OPTIONS[nextIndex].value);
+    }, (settings?.autoChangeInterval || 30) * 1000);
+
+    return () => clearInterval(interval);
+  }, [settings?.autoChangeInterval, settings?.visualizationType, handleSettingChange]);
 
   return (
-    <div className="bg-slate-800 w-screen h-screen flex flex-col justify-center items-center p-8">
-      <div className="w-full max-w-4xl">
-        <h1 className="text-4xl font-bold text-white mb-6">Audio Visualizer</h1>
+    <div className="w-screen h-screen bg-black relative overflow-hidden">
+      {/* Main Visualization Canvas */}
+      <div className="w-full h-full relative">
+        <VisualizationCanvas
+          settings={settings || defaultSettings}
+          audioData={audioData}
+          isActive={true}
+        />
+        
+        {/* Current Visualization Indicator */}
+        {settings?.showVisualizationName && (
+          <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg select-none pointer-events-none text-xs sm:text-sm">
+            {VISUALIZATION_OPTIONS.find(opt => opt.value === settings?.visualizationType)?.label}
+          </div>
+        )}
+        
+        {/* Audio Source Indicator */}
+        {showAudioIndicator && (
+          <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black bg-opacity-50 text-white px-2 sm:px-3 py-1 rounded-lg text-xs select-none pointer-events-none transition-opacity duration-500">
+            {connected ? '🔊 System Audio' : '❌ Disconnected'}
+          </div>
+        )}
 
-        <div className="bg-slate-700 rounded-lg p-6 mb-6">
-          <h3 className="text-xl font-semibold text-white mb-3">Status</h3>
-          <p className="text-white mb-2">
-            <strong>Connected:</strong> {connected ? '✅ Yes' : '❌ No'}
-          </p>
-          {audioFormat && (
-            <p className="text-white">
-              <strong>Format:</strong> {audioFormat.sampleRate}Hz, {audioFormat.channels}ch,{' '}
-              {audioFormat.bitsPerSample}bit
-            </p>
-          )}
+        {/* Connection Status Indicator (always visible) */}
+        <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 bg-black bg-opacity-50 text-white px-2 sm:px-3 py-1 rounded-lg text-xs select-none pointer-events-none">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span>{connected ? 'Connected' : 'Disconnected'}</span>
+            {audioFormat && connected && (
+              <span className="text-gray-400">
+                | {audioFormat.sampleRate}Hz, {audioFormat.channels}ch
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Panel Toggle Areas */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Left Panel Toggle - Clickable edge without icon */}
+        <div 
+          className="absolute left-0 top-0 w-8 h-full panel-toggle cursor-pointer pointer-events-auto"
+          onClick={toggleVisualizationPanel}
+        >
         </div>
 
-        <div className="bg-slate-700 rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-white mb-3">Waveform</h3>
-          <canvas
-            ref={canvasRef}
-            width={800}
-            height={200}
-            className="w-full bg-black rounded"
-          />
+        {/* Right Panel Toggle - Clickable edge without icon */}
+        <div 
+          className="absolute right-0 top-0 w-8 h-full panel-toggle cursor-pointer pointer-events-auto"
+          onClick={toggleSettingsPanel}
+        >
         </div>
+      </div>
+
+      {/* Left Panel - Visualization Selector */}
+      <div className={`${isVisualizationPanelOpen ? 'panel' : ''} left-panel`}>
+        <VisualizationSelector
+          currentType={(settings?.visualizationType || 'wave') as any}
+          onTypeChange={(type) => handleSettingChange('visualizationType', type)}
+          isOpen={isVisualizationPanelOpen}
+          onClose={() => setIsVisualizationPanelOpen(false)}
+        />
+      </div>
+
+      {/* Right Panel - Settings */}
+      <div className={`${isSettingsPanelOpen ? 'panel' : ''} right-panel`}>
+        <SettingsPanel
+          settings={settings || defaultSettings}
+          onSettingChange={handleSettingChange}
+          isOpen={isSettingsPanelOpen}
+          onClose={() => setIsSettingsPanelOpen(false)}
+        />
       </div>
     </div>
   );
