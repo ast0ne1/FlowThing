@@ -30,44 +30,44 @@ export class WebSocketAudioClient {
   private reconnectInterval: NodeJS.Timeout | null = null;
   private callbacks: WebSocketCallbacks;
   
-  // WebSocket server configuration - now configurable
-  private wsPort: number = 5000;
-  private apiPort: number = 5000;
+  // WebSocket and API URLs - now configurable
+  private baseUrl: string = "http://localhost:5000";
+  private wsUrl: string = "ws://localhost:5000";
   private readonly RECONNECT_DELAY = 5000; // 5 seconds
 
-  constructor(callbacks: WebSocketCallbacks, wsPort: number = 5000, apiPort: number = 5000) {
+  constructor(callbacks: WebSocketCallbacks, baseUrl: string = "http://localhost:5000", wsUrl: string = "ws://localhost:5000") {
     this.callbacks = callbacks;
-    this.wsPort = wsPort;
-    this.apiPort = apiPort;
+    this.baseUrl = baseUrl;
+    this.wsUrl = wsUrl;
     this.callbacks.onLog('WebSocketAudioClient initialized');
   }
 
-  // Update ports dynamically
-  public updatePorts(wsPort: number, apiPort: number) {
+  // Update URLs dynamically
+  public updateUrls(baseUrl: string, wsUrl: string) {
     const wasConnected = this.isConnected;
     
     if (wasConnected) {
       this.disconnect();
     }
     
-    this.wsPort = wsPort;
-    this.apiPort = apiPort;
-    this.callbacks.onLog(`Ports updated - WebSocket: ${wsPort}, API: ${apiPort}`);
+    this.baseUrl = baseUrl;
+    this.wsUrl = wsUrl;
+    this.callbacks.onLog(`URLs updated - Base: ${baseUrl}, WebSocket: ${wsUrl}`);
     
     if (wasConnected) {
-      // Reconnect with new ports
+      // Reconnect with new URLs
       setTimeout(() => this.connect(), 1000);
     }
   }
 
   // Get current WebSocket URL
   private getWsUrl(): string {
-    return `ws://localhost:${this.wsPort}/ws/audio`;
+    return `${this.wsUrl}/ws/audio`;
   }
 
   // Get current API base URL
   private getApiBaseUrl(): string {
-    return `http://localhost:${this.apiPort}`;
+    return this.baseUrl;
   }
 
   // Connect to the C# WebSocket server

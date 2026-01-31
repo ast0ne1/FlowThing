@@ -14,10 +14,9 @@ export const FlowThingSettingIDs = {
   SHOW_VISUALIZATION_NAME: 'showVisualizationName',
   PERFORMANCE_MODE: 'performanceMode',
   STOP_CAPTURE: 'stopCapture',
-  WS_PORT: 'wsPort',
-  API_PORT: 'apiPort',
-  AUTO_START_SERVER: 'autoStartServer',
-  SERVER_EXECUTABLE_PATH: 'serverExecutablePath'
+  BASE_URL: 'baseUrl',
+  WS_URL: 'wsUrl',
+  AUTO_START_SERVER: 'autoStartServer'
 } as const;
 
 // Define default settings locally for server-side use
@@ -32,10 +31,9 @@ const defaultSettings = {
   [FlowThingSettingIDs.SHOW_VISUALIZATION_NAME]: true,
   [FlowThingSettingIDs.PERFORMANCE_MODE]: "balanced",
   [FlowThingSettingIDs.STOP_CAPTURE]: false,
-  [FlowThingSettingIDs.WS_PORT]: 5000,
-  [FlowThingSettingIDs.API_PORT]: 5000,
-  [FlowThingSettingIDs.AUTO_START_SERVER]: true,
-  [FlowThingSettingIDs.SERVER_EXECUTABLE_PATH]: ""
+  [FlowThingSettingIDs.BASE_URL]: "http://localhost:5000",
+  [FlowThingSettingIDs.WS_URL]: "ws://localhost:5000",
+  [FlowThingSettingIDs.AUTO_START_SERVER]: true
 };
 
 // Export function to update current settings from outside
@@ -185,26 +183,22 @@ async function handleStopCapture() {
 export function setupSettings() {
   console.log('[FlowThing] Setting up settings configuration...');
   
-  // Get default server path
-  const appData = process.env.APPDATA || require('path').join(require('os').homedir(), 'AppData', 'Roaming');
-  const defaultServerPath = require('path').join(appData, "deskthing", "apps", "weatherwaves", "client", "Audio.exe");
-  
   try {
     // Use the same structure as Spotify - object with setting IDs as keys
     const deskThingSettings = {
-      [FlowThingSettingIDs.WS_PORT]: {
-        id: FlowThingSettingIDs.WS_PORT,
-        type: SETTING_TYPES.NUMBER,
-        label: "WebSocket Port",
-        description: "Port for WebSocket audio stream connection (will reconnect on change)",
-        value: defaultSettings[FlowThingSettingIDs.WS_PORT]
+      [FlowThingSettingIDs.BASE_URL]: {
+        id: FlowThingSettingIDs.BASE_URL,
+        type: SETTING_TYPES.STRING,
+        label: "Base URL",
+        description: "Base URL for HTTP API requests (will reconnect on change)",
+        value: defaultSettings[FlowThingSettingIDs.BASE_URL]
       },
-      [FlowThingSettingIDs.API_PORT]: {
-        id: FlowThingSettingIDs.API_PORT,
-        type: SETTING_TYPES.NUMBER,
-        label: "API Port",
-        description: "Port for HTTP API requests (will reconnect on change)",
-        value: defaultSettings[FlowThingSettingIDs.API_PORT]
+      [FlowThingSettingIDs.WS_URL]: {
+        id: FlowThingSettingIDs.WS_URL,
+        type: SETTING_TYPES.STRING,
+        label: "WebSocket URL",
+        description: "WebSocket URL for audio stream connection (will reconnect on change)",
+        value: defaultSettings[FlowThingSettingIDs.WS_URL]
       },
       [FlowThingSettingIDs.AUTO_START_SERVER]: {
         id: FlowThingSettingIDs.AUTO_START_SERVER,
@@ -212,13 +206,6 @@ export function setupSettings() {
         label: "Auto-Start Server",
         description: "Automatically start the C# audio server on app launch",
         value: defaultSettings[FlowThingSettingIDs.AUTO_START_SERVER]
-      },
-      [FlowThingSettingIDs.SERVER_EXECUTABLE_PATH]: {
-        id: FlowThingSettingIDs.SERVER_EXECUTABLE_PATH,
-        type: SETTING_TYPES.STRING,
-        label: "Server Executable Path",
-        description: "Path to the audio server executable (leave empty for default)",
-        value: defaultServerPath
       },
       [FlowThingSettingIDs.AUDIO_SENSITIVITY]: {
         id: FlowThingSettingIDs.AUDIO_SENSITIVITY,
@@ -327,10 +314,10 @@ export function setupSettings() {
       
       console.log('[FlowThing] Received settings update from DeskThing:', settings);
       
-      // Track if port settings changed
-      let portsChanged = false;
-      let wsPortValue = currentSettings[FlowThingSettingIDs.WS_PORT];
-      let apiPortValue = currentSettings[FlowThingSettingIDs.API_PORT];
+      // Track if URL settings changed
+      let urlsChanged = false;
+      let baseUrlValue = currentSettings[FlowThingSettingIDs.BASE_URL];
+      let wsUrlValue = currentSettings[FlowThingSettingIDs.WS_URL];
       
       // Process setting changes and update currentSettings
       Object.entries(settings).forEach(([key, setting]: [string, any]) => {
@@ -338,12 +325,12 @@ export function setupSettings() {
           console.log(`[FlowThing] Setting updated: ${key} = ${setting.value}`);
           
           // Handle special cases
-          if (key === FlowThingSettingIDs.WS_PORT && setting.value !== currentSettings[key]) {
-            wsPortValue = parseInt(setting.value);
-            portsChanged = true;
-          } else if (key === FlowThingSettingIDs.API_PORT && setting.value !== currentSettings[key]) {
-            apiPortValue = parseInt(setting.value);
-            portsChanged = true;
+          if (key === FlowThingSettingIDs.BASE_URL && setting.value !== currentSettings[key]) {
+            baseUrlValue = setting.value;
+            urlsChanged = true;
+          } else if (key === FlowThingSettingIDs.WS_URL && setting.value !== currentSettings[key]) {
+            wsUrlValue = setting.value;
+            urlsChanged = true;
           } else if (key === FlowThingSettingIDs.AUDIO_DEVICE && setting.value !== currentSettings[key]) {
             // Device selection changed
             handleDeviceSelection(setting.value);
@@ -358,7 +345,7 @@ export function setupSettings() {
         }
       });
       
-      // If ports changed or server settings changed, notify AudioStreamService
+      // If URLs changed or server settings changed, notify AudioStreamService
       if (audioStreamService) {
         audioStreamService.updateSettings(currentSettings);
       }

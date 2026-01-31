@@ -13,9 +13,6 @@ class AudioStreamService {
   private wsClient: WebSocketAudioClient;
   private audioFormat: AudioFormatData | null = null;
   
-  // WebSocket server configuration
-  private readonly WS_URL = 'ws://localhost:5000/ws/audio';
-
   // Server process management
   private serverProcess: ChildProcess | null = null;
   private serverExecutablePath: string = "";
@@ -24,15 +21,15 @@ class AudioStreamService {
   private autoStartServer: boolean = true;
 
   constructor() {
-    // Set default server path (can be configured via settings)
+    // Set default server path
     const appData = process.env.APPDATA || pathJoin(homedir(), 'AppData', 'Roaming');
     this.serverExecutablePath = pathJoin(appData, "deskthing", "apps", "weatherwaves", "client", "Audio.exe");
     
     DeskThing.sendLog('AudioStreamService initialized');
     
-    // Initialize WebSocket client with default ports (will be updated from settings)
-    const wsPort = 5000;
-    const apiPort = 5000;
+    // Initialize WebSocket client with default URLs (will be updated from settings)
+    const baseUrl = "http://localhost:5000";
+    const wsUrl = "ws://localhost:5000";
     
     // Set up callbacks for WebSocket client
     const callbacks: WebSocketCallbacks = {
@@ -68,7 +65,7 @@ class AudioStreamService {
       }
     };
     
-    this.wsClient = new WebSocketAudioClient(callbacks, wsPort, apiPort);
+    this.wsClient = new WebSocketAudioClient(callbacks, baseUrl, wsUrl);
   }
 
   // Check if server executable exists
@@ -271,22 +268,22 @@ class AudioStreamService {
     }
 
     try {
-      const newAutoStartServer = Boolean(settings.autoStartServer?.value ?? settings.autoStartServer ?? true);
-      const newServerPath = String(settings.serverExecutablePath?.value ?? settings.serverExecutablePath ?? this.serverExecutablePath);
-      const newWsPort = parseInt(String(settings.wsPort?.value ?? settings.wsPort ?? "5000"));
-      const newApiPort = parseInt(String(settings.apiPort?.value ?? settings.apiPort ?? "5000"));
+      const newAutoStartServer = Boolean(settings[FlowThingSettingIDs.AUTO_START_SERVER] ?? true);
+      const newBaseUrl = String(settings[FlowThingSettingIDs.BASE_URL] ?? "http://localhost:5000");
+      const newWsUrl = String(settings[FlowThingSettingIDs.WS_URL] ?? "ws://localhost:5000");
       
-      const serverPathChanged = newServerPath !== this.serverExecutablePath;
+      const urlsChanged = newBaseUrl !== currentSettings[FlowThingSettingIDs.BASE_URL] || 
+                         newWsUrl !== currentSettings[FlowThingSettingIDs.WS_URL];
       
       this.autoStartServer = newAutoStartServer;
-      this.serverExecutablePath = newServerPath;
 
-      DeskThing.sendLog(`Settings updated - Auto-start: ${this.autoStartServer}, WS Port: ${newWsPort}, API Port: ${newApiPort}`);
+      DeskThing.sendLog(`Settings updated - Auto-start: ${this.autoStartServer}, Base URL: ${newBaseUrl}, WS URL: ${newWsUrl}`);
 
-      if (serverPathChanged) {
-        DeskThing.sendLog(`Server path updated: ${this.serverExecutablePath}`);
+      // Update WebSocket client URLs if they changed
+      if (urlsChanged) {
+        DeskThing.sendLog(`URLs changed, updating WebSocket client...`);
+        this.wsClient.updateUrls(newBaseUrl, newWsUrl);
       }
-
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -408,6 +405,9 @@ DeskThing.on('start', async () => {
       });
       
       console.log('[AudioStream] Current settings initialized:', currentSettings);
+      
+      // Update AudioStreamService with initial settings (to set URLs)
+      audioStreamService.updateSettings(currentSettings);
     } else {
       console.warn('[AudioStream] Settings configuration may have issues');
     }
