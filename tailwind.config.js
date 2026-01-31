@@ -5,8 +5,14 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        geist: ['Geist', 'sans-serif'],
+        HelveticaNeue: ['HelveticaNeue', 'sans-serif'],
+        interstate: ['Interstate', 'sans-serif'],
+        montserrat: ['Montserrat', 'sans-serif'],  // <- Added Montserrat here
+      },
+    },
   },
   plugins: [],
 }
-
