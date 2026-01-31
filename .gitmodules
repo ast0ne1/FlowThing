@@ -1,0 +1,3 @@
+[submodule "FlowThing-Audio-Server"]
+	path = FlowThing-Audio-Server
+	url = https://github.com/iamGaven/FlowThing-Audio-Server.git
