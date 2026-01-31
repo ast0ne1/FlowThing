@@ -6,6 +6,24 @@ export type GenericTransitData = {
 export type ToClientData = {
   type: 'audio_stream_status' | 'audio_format' | 'audio_data' | 'settings' | 'setting_changed';
   payload: any;
+}
+| {
+      type: 'server_status';
+      payload: ServerStatus;
+    }
+  | {
+      type: 'log';
+      payload: LogEntry;
+    }
+  | {
+      type: 'logs';
+      payload: LogEntry[];
+    }
+;
+export type LogEntry = {
+  timestamp: number;
+  level: 'info' | 'warn' | 'error' | 'success';
+  message: string;
 };
 
 export interface AudioStreamData {
@@ -13,6 +31,11 @@ export interface AudioStreamData {
   length: number;
   timestamp: number;
 }
+// Server status info
+export type ServerStatus = {
+  isRunning: boolean;
+  executablePath: string;
+};
 
 export interface AudioFormatData {
   sampleRate: number;

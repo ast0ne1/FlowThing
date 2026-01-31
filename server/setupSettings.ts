@@ -1,5 +1,6 @@
 import { DeskThing } from '@deskthing/server';
 import { DESKTHING_EVENTS, SETTING_TYPES } from '@deskthing/types';
+import { WebSocketAudioClient, AudioDevice } from './Websocketaudioclient.js';
 
 // Define setting IDs for consistency
 export const FlowThingSettingIDs = {
@@ -8,9 +9,15 @@ export const FlowThingSettingIDs = {
   PRIMARY_COLOR: 'primaryColor',
   ANIMATION_SPEED: 'animationSpeed',
   AUDIO_SOURCE: 'audioSource',
+  AUDIO_DEVICE: 'audioDevice',
   AUTO_CHANGE_INTERVAL: 'autoChangeInterval',
   SHOW_VISUALIZATION_NAME: 'showVisualizationName',
-  PERFORMANCE_MODE: 'performanceMode'
+  PERFORMANCE_MODE: 'performanceMode',
+  STOP_CAPTURE: 'stopCapture',
+  WS_PORT: 'wsPort',
+  API_PORT: 'apiPort',
+  AUTO_START_SERVER: 'autoStartServer',
+  SERVER_EXECUTABLE_PATH: 'serverExecutablePath'
 } as const;
 
 // Define default settings locally for server-side use
@@ -20,20 +27,199 @@ const defaultSettings = {
   [FlowThingSettingIDs.PRIMARY_COLOR]: "#667eea",
   [FlowThingSettingIDs.ANIMATION_SPEED]: 50,
   [FlowThingSettingIDs.AUDIO_SOURCE]: "system",
+  [FlowThingSettingIDs.AUDIO_DEVICE]: "",
   [FlowThingSettingIDs.AUTO_CHANGE_INTERVAL]: 30,
   [FlowThingSettingIDs.SHOW_VISUALIZATION_NAME]: true,
-  [FlowThingSettingIDs.PERFORMANCE_MODE]: "balanced"
+  [FlowThingSettingIDs.PERFORMANCE_MODE]: "balanced",
+  [FlowThingSettingIDs.STOP_CAPTURE]: false,
+  [FlowThingSettingIDs.WS_PORT]: 5000,
+  [FlowThingSettingIDs.API_PORT]: 5000,
+  [FlowThingSettingIDs.AUTO_START_SERVER]: true,
+  [FlowThingSettingIDs.SERVER_EXECUTABLE_PATH]: ""
 };
 
 // Export function to update current settings from outside
 export let currentSettings: Record<string, any> = {};
 
+// Store WebSocket client reference
+let wsClient: WebSocketAudioClient | null = null;
+
+// Store AudioStreamService reference for settings updates
+let audioStreamService: any = null;
+
+// Store available devices
+let availableDevices: AudioDevice[] = [];
+
+export function setWebSocketClient(client: WebSocketAudioClient) {
+  wsClient = client;
+  // Don't fetch devices immediately - wait for server to be ready
+  console.log('[FlowThing] WebSocket client set, waiting for server to be ready...');
+}
+
+// Function to manually trigger device refresh (called when server is ready)
+export function triggerDeviceRefresh() {
+  console.log('[FlowThing] Triggering device refresh...');
+  refreshDeviceList();
+}
+
+export function setAudioStreamService(service: any) {
+  audioStreamService = service;
+  console.log('[FlowThing] AudioStreamService reference set');
+}
+
+async function refreshDeviceList() {
+  if (!wsClient) {
+    console.warn('[FlowThing] WebSocket client not available, cannot fetch devices');
+    return;
+  }
+
+  try {
+    console.log('[FlowThing] Fetching audio devices...');
+    availableDevices = await wsClient.getDevices();
+    console.log('[FlowThing] Found devices:', availableDevices);
+    
+    // Update the audio device setting with new options
+    if (availableDevices.length > 0) {
+      const deviceOptions = availableDevices.map(device => ({
+        label: `${device.name}${device.isDefault ? ' (Default)' : ''}`,
+        value: device.deviceId
+      }));
+      
+      // Use setSettingOptions to update the dropdown options dynamically
+      console.log('[FlowThing] Updating device options with setSettingOptions:', deviceOptions);
+      DeskThing.setSettingOptions(FlowThingSettingIDs.AUDIO_DEVICE, deviceOptions);
+      
+      // Determine the default device value
+      const defaultDeviceId = availableDevices.find(d => d.isDefault)?.deviceId || availableDevices[0].deviceId;
+      
+      // Update current settings with the default device if not already set
+      if (!currentSettings[FlowThingSettingIDs.AUDIO_DEVICE]) {
+        currentSettings[FlowThingSettingIDs.AUDIO_DEVICE] = defaultDeviceId;
+        
+        // Update the setting value as well
+        const updatedSettings = {
+          [FlowThingSettingIDs.AUDIO_DEVICE]: {
+            id: FlowThingSettingIDs.AUDIO_DEVICE,
+            type: SETTING_TYPES.SELECT,
+            label: "Audio Device",
+            description: "Select the audio device to capture from",
+            value: defaultDeviceId,
+            options: deviceOptions
+          }
+        };
+        
+        DeskThing.addSettings(updatedSettings as any);
+      }
+      
+      console.log('[FlowThing] Updated device list with', deviceOptions.length, 'devices');
+    } else {
+      console.warn('[FlowThing] No audio devices found!');
+      DeskThing.setSettingOptions(FlowThingSettingIDs.AUDIO_DEVICE, [
+        { label: "No devices available", value: "" }
+      ]);
+    }
+  } catch (error) {
+    console.error('[FlowThing] Error fetching devices:', error);
+    DeskThing.setSettingOptions(FlowThingSettingIDs.AUDIO_DEVICE, [
+      { label: "Error loading devices - Check server", value: "" }
+    ]);
+  }
+}
+
+async function handleDeviceSelection(deviceId: string) {
+  if (!wsClient) {
+    console.error('[FlowThing] WebSocket client not available');
+    return;
+  }
+
+  // Don't do anything if the device ID is empty or unchanged
+  if (!deviceId || deviceId === currentSettings[FlowThingSettingIDs.AUDIO_DEVICE]) {
+    console.log('[FlowThing] Device ID unchanged or empty, skipping selection');
+    return;
+  }
+
+  try {
+    console.log('[FlowThing] Selecting device:', deviceId);
+    
+    // Select the device
+    await wsClient.selectDevice(deviceId);
+    console.log('[FlowThing] Device selected successfully');
+    
+    // Automatically start capture
+    console.log('[FlowThing] Starting capture automatically...');
+    await wsClient.startCapture();
+    console.log('[FlowThing] Capture started successfully');
+    
+    // Update current settings
+    currentSettings[FlowThingSettingIDs.AUDIO_DEVICE] = deviceId;
+    
+    // Notify client
+    DeskThing.send({ 
+      type: 'settings', 
+      payload: currentSettings 
+    });
+    
+    DeskThing.sendLog(`Audio capture started on device: ${availableDevices.find(d => d.deviceId === deviceId)?.name || deviceId}`);
+  } catch (error) {
+    console.error('[FlowThing] Error handling device selection:', error);
+    DeskThing.sendError(`Failed to select device: ${error}`);
+  }
+}
+
+async function handleStopCapture() {
+  if (!wsClient) {
+    console.error('[FlowThing] WebSocket client not available');
+    return;
+  }
+
+  try {
+    console.log('[FlowThing] Stopping capture...');
+    await wsClient.stopCapture();
+    console.log('[FlowThing] Capture stopped successfully');
+  } catch (error) {
+    console.error('[FlowThing] Error stopping capture:', error);
+    DeskThing.sendError(`Failed to stop capture: ${error}`);
+  }
+}
+
 export function setupSettings() {
   console.log('[FlowThing] Setting up settings configuration...');
+  
+  // Get default server path
+  const appData = process.env.APPDATA || require('path').join(require('os').homedir(), 'AppData', 'Roaming');
+  const defaultServerPath = require('path').join(appData, "deskthing", "apps", "weatherwaves", "client", "Audio.exe");
   
   try {
     // Use the same structure as Spotify - object with setting IDs as keys
     const deskThingSettings = {
+      [FlowThingSettingIDs.WS_PORT]: {
+        id: FlowThingSettingIDs.WS_PORT,
+        type: SETTING_TYPES.NUMBER,
+        label: "WebSocket Port",
+        description: "Port for WebSocket audio stream connection (will reconnect on change)",
+        value: defaultSettings[FlowThingSettingIDs.WS_PORT]
+      },
+      [FlowThingSettingIDs.API_PORT]: {
+        id: FlowThingSettingIDs.API_PORT,
+        type: SETTING_TYPES.NUMBER,
+        label: "API Port",
+        description: "Port for HTTP API requests (will reconnect on change)",
+        value: defaultSettings[FlowThingSettingIDs.API_PORT]
+      },
+      [FlowThingSettingIDs.AUTO_START_SERVER]: {
+        id: FlowThingSettingIDs.AUTO_START_SERVER,
+        type: SETTING_TYPES.BOOLEAN,
+        label: "Auto-Start Server",
+        description: "Automatically start the C# audio server on app launch",
+        value: defaultSettings[FlowThingSettingIDs.AUTO_START_SERVER]
+      },
+      [FlowThingSettingIDs.SERVER_EXECUTABLE_PATH]: {
+        id: FlowThingSettingIDs.SERVER_EXECUTABLE_PATH,
+        type: SETTING_TYPES.STRING,
+        label: "Server Executable Path",
+        description: "Path to the audio server executable (leave empty for default)",
+        value: defaultServerPath
+      },
       [FlowThingSettingIDs.AUDIO_SENSITIVITY]: {
         id: FlowThingSettingIDs.AUDIO_SENSITIVITY,
         type: SETTING_TYPES.RANGE,
@@ -80,6 +266,16 @@ export function setupSettings() {
           { label: "🎲 Demo Mode", value: "mock" }
         ]
       },
+      [FlowThingSettingIDs.AUDIO_DEVICE]: {
+        id: FlowThingSettingIDs.AUDIO_DEVICE,
+        type: SETTING_TYPES.SELECT,
+        label: "Audio Device",
+        description: "Select the audio device to capture from (loading...)",
+        value: defaultSettings[FlowThingSettingIDs.AUDIO_DEVICE],
+        options: [
+          { label: "Loading devices...", value: "" }
+        ]
+      },
       [FlowThingSettingIDs.AUTO_CHANGE_INTERVAL]: {
         id: FlowThingSettingIDs.AUTO_CHANGE_INTERVAL,
         type: SETTING_TYPES.RANGE,
@@ -108,6 +304,13 @@ export function setupSettings() {
           { label: "Balanced", value: "balanced" },
           { label: "Performance", value: "performance" }
         ]
+      },
+      [FlowThingSettingIDs.STOP_CAPTURE]: {
+        id: FlowThingSettingIDs.STOP_CAPTURE,
+        type: SETTING_TYPES.BOOLEAN,
+        label: "Stop Audio Capture",
+        description: "Stop capturing audio from the selected device",
+        value: false
       }
     };
 
@@ -124,13 +327,41 @@ export function setupSettings() {
       
       console.log('[FlowThing] Received settings update from DeskThing:', settings);
       
+      // Track if port settings changed
+      let portsChanged = false;
+      let wsPortValue = currentSettings[FlowThingSettingIDs.WS_PORT];
+      let apiPortValue = currentSettings[FlowThingSettingIDs.API_PORT];
+      
       // Process setting changes and update currentSettings
       Object.entries(settings).forEach(([key, setting]: [string, any]) => {
         if (setting && setting.value !== undefined) {
           console.log(`[FlowThing] Setting updated: ${key} = ${setting.value}`);
+          
+          // Handle special cases
+          if (key === FlowThingSettingIDs.WS_PORT && setting.value !== currentSettings[key]) {
+            wsPortValue = parseInt(setting.value);
+            portsChanged = true;
+          } else if (key === FlowThingSettingIDs.API_PORT && setting.value !== currentSettings[key]) {
+            apiPortValue = parseInt(setting.value);
+            portsChanged = true;
+          } else if (key === FlowThingSettingIDs.AUDIO_DEVICE && setting.value !== currentSettings[key]) {
+            // Device selection changed
+            handleDeviceSelection(setting.value);
+          } else if (key === FlowThingSettingIDs.STOP_CAPTURE && setting.value === true) {
+            // Stop capture button pressed
+            handleStopCapture();
+            // Reset the button
+            setting.value = false;
+          }
+          
           currentSettings[key] = setting.value;
         }
       });
+      
+      // If ports changed or server settings changed, notify AudioStreamService
+      if (audioStreamService) {
+        audioStreamService.updateSettings(currentSettings);
+      }
       
       // Forward updated settings to client
       DeskThing.send({ 
