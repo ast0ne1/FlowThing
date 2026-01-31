@@ -28,8 +28,8 @@ class AudioStreamService {
     DeskThing.sendLog('AudioStreamService initialized');
     
     // Initialize WebSocket client with default URLs (will be updated from settings)
-    const baseUrl = "http://localhost:5000";
-    const wsUrl = "ws://localhost:5000";
+    const baseUrl = "http://localhost:5012";
+    const wsUrl = "ws://localhost:5012";
     
     // Set up callbacks for WebSocket client
     const callbacks: WebSocketCallbacks = {
@@ -170,7 +170,7 @@ class AudioStreamService {
             this.serverProcess.kill('SIGKILL');
           }
           resolve();
-        }, 5000);
+        }, 5012);
 
         this.serverProcess?.once('exit', () => {
           clearTimeout(timeout);
@@ -269,8 +269,8 @@ class AudioStreamService {
 
     try {
       const newAutoStartServer = Boolean(settings[FlowThingSettingIDs.AUTO_START_SERVER] ?? true);
-      const newBaseUrl = String(settings[FlowThingSettingIDs.BASE_URL] ?? "http://localhost:5000");
-      const newWsUrl = String(settings[FlowThingSettingIDs.WS_URL] ?? "ws://localhost:5000");
+      const newBaseUrl = String(settings[FlowThingSettingIDs.BASE_URL] ?? "http://localhost:5012");
+      const newWsUrl = String(settings[FlowThingSettingIDs.WS_URL] ?? "ws://localhost:5012");
       
       const urlsChanged = newBaseUrl !== currentSettings[FlowThingSettingIDs.BASE_URL] || 
                          newWsUrl !== currentSettings[FlowThingSettingIDs.WS_URL];

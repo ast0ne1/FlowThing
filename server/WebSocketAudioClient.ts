@@ -31,11 +31,11 @@ export class WebSocketAudioClient {
   private callbacks: WebSocketCallbacks;
   
   // WebSocket and API URLs - now configurable
-  private baseUrl: string = "http://localhost:5000";
-  private wsUrl: string = "ws://localhost:5000";
+  private baseUrl: string = "http://localhost:5012";
+  private wsUrl: string = "ws://localhost:5012";
   private readonly RECONNECT_DELAY = 5000; // 5 seconds
 
-  constructor(callbacks: WebSocketCallbacks, baseUrl: string = "http://localhost:5000", wsUrl: string = "ws://localhost:5000") {
+  constructor(callbacks: WebSocketCallbacks, baseUrl: string = "http://localhost:5012", wsUrl: string = "ws://localhost:5012") {
     this.callbacks = callbacks;
     this.baseUrl = baseUrl;
     this.wsUrl = wsUrl;

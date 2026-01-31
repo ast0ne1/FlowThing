@@ -31,8 +31,8 @@ const defaultSettings = {
   [FlowThingSettingIDs.SHOW_VISUALIZATION_NAME]: true,
   [FlowThingSettingIDs.PERFORMANCE_MODE]: "balanced",
   [FlowThingSettingIDs.STOP_CAPTURE]: false,
-  [FlowThingSettingIDs.BASE_URL]: "http://localhost:5000",
-  [FlowThingSettingIDs.WS_URL]: "ws://localhost:5000",
+  [FlowThingSettingIDs.BASE_URL]: "http://localhost:5012",
+  [FlowThingSettingIDs.WS_URL]: "ws://localhost:5012",
   [FlowThingSettingIDs.AUTO_START_SERVER]: true
 };
 
