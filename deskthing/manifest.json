@@ -8,7 +8,7 @@
   "compatible_server": ["10"],
   "compatible_client": ["10"],
   "description": "A music visualizer app for DeskThing with multiple visualization types, customizable settings, and real-time audio response",
-  "author": "milest0ne",
+  "author": "milest0ne, iamGaven",
   "platforms": ["windows"],
   "homepage": "https://deskthing.app",
   "repository": "https://github.com/ast0ne1/FlowThing",

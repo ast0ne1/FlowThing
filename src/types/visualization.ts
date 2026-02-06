@@ -5,6 +5,7 @@ export interface FlowThingSettings {
   primaryColor: string;
   animationSpeed: number;
   audioSource: 'system' | 'microphone' | 'mock';
+  audioAnalysisMethod: AudioAnalysisMethod;
   autoChangeInterval: number;
   showVisualizationName: boolean;
   performanceMode: 'quality' | 'balanced' | 'performance';
@@ -104,7 +105,10 @@ export const defaultSettings: FlowThingSettings = {
   primaryColor: "#667eea",
   animationSpeed: 50,
   audioSource: "system",
+  audioAnalysisMethod: 'fft',
   autoChangeInterval: 30,
   showVisualizationName: true,
   performanceMode: "balanced"
 };
+
+export type AudioAnalysisMethod = 'fft' | 'rms';

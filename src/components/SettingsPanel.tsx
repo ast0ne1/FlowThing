@@ -194,48 +194,76 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <label className="block text-sm font-medium mb-2">
               Audio Source
             </label>
-            <select
-              value={settings?.audioSource || 'mock'}
-              onChange={(e) => {
-                try {
-                  const value = e.target.value as 'deskthing' | 'system' | 'microphone' | 'mock';
-                  onSettingChange('audioSource', value);
-                        } catch (error) {
-          console.error('[FlowThing] Error changing audio source:', error);
-        }
-              }}
-              className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
+            <div className="grid grid-cols-2 gap-2 mb-2">
               {AUDIO_SOURCE_OPTIONS?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    try {
+                      const value = option.value as 'deskthing' | 'system' | 'microphone' | 'mock';
+                      onSettingChange('audioSource', value);
+                    } catch (error) {
+                      console.error('[FlowThing] Error changing audio source:', error);
+                    }
+                  }}
+                  className={`px-3 py-2 rounded-lg font-medium transition-all text-sm ${
+                    settings?.audioSource === option.value
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-xs">{option.label}</span>
+                  </div>
+                </button>
               )) || []}
-            </select>
-            <p className="text-xs text-gray-400 mt-1">
+            </div>
+            <p className="text-xs text-gray-400">
               {AUDIO_SOURCE_OPTIONS?.find(opt => opt.value === settings?.audioSource)?.description || 'Select audio source'}
             </p>
           </div>
 
-          {/* Auto Change Interval */}
+          {/* Audio Analysis Method */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Auto Change Interval: {settings.autoChangeInterval}s
+              Audio Analysis Method
             </label>
-            <input
-              type="range"
-              min="0"
-              max="300"
-              step="10"
-              value={settings.autoChangeInterval}
-              onChange={(e) => onSettingChange('autoChangeInterval', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>Disabled</span>
-              <span>5 min</span>
+            <div className="flex items-center space-x-3 mb-2">
+              <button
+                onClick={() => onSettingChange('audioAnalysisMethod', 'fft')}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                  settings?.audioAnalysisMethod === 'fft'
+                    ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>🎵</span>
+                  <span>FFT</span>
+                </div>
+              </button>
+              <button
+                onClick={() => onSettingChange('audioAnalysisMethod', 'rms')}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                  settings?.audioAnalysisMethod === 'rms'
+                    ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>📊</span>
+                  <span>RMS</span>
+                </div>
+              </button>
             </div>
+            <p className="text-xs text-gray-400">
+              {settings?.audioAnalysisMethod === 'fft' 
+                ? 'FFT: Frequency-based analysis - bass, mids, and treble respond independently (recommended)'
+                : 'RMS: Amplitude-based analysis - all frequencies respond together'}
+            </p>
           </div>
+
+       
 
           {/* Show Visualization Name */}
           <div className="flex items-center justify-between">

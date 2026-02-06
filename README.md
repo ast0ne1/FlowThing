@@ -9,6 +9,47 @@ This PoC has been Vibe coded with Cursor based on Riprod's DeskThing app templat
 ![flowthing3](https://github.com/user-attachments/assets/40a74406-b9b2-4a4f-9aa4-bbb228e52cd4)
 
 
+
+## Setting Up for CarThing
+
+To use FlowThing on your CarThing device, you'll need to install VB-Audio Virtual Cable for better audio routing control. This is especially important if your speakers are plugged into your monitor instead of your PC.
+
+### Installing VB-Audio Virtual Cable
+
+1. **Download VB-Audio Virtual Cable:**
+   - Visit https://vb-audio.com/Cable/
+   - Download and install the virtual audio cable driver
+
+2. **Configure Windows Audio Settings:**
+   
+   **Set up Playback:**
+   - Open Windows Sound settings
+   - Go to the **Playback** tab
+   - Set **Cable Input** as the default device
+   
+    ![Playback Settings](./readMeImages/Playback.PNG)
+
+   **Set up Recording:**
+   - Go to the **Recording** tab
+   - Set **Cable Output** as the default device
+   - Right-click on **Cable Output** and select **Properties**
+   - Go to the **Listen** tab
+   - Select the monitor you want the audio to come from (this will be the monitor your speakers are plugged into)
+   - Check the **"Listen to this device"** box
+   - Click **Apply** and **OK**
+   
+    ![Recording Settings](./readMeImages/Recording.PNG)
+    ![Listen Settings](./readMeImages/Listen.PNG)
+
+3. **Configure FlowThing in DeskThing:**
+   - Load the FlowThing app into DeskThing
+   - Go to the app settings
+   - You will see all your audio devices listed in the settings
+   - Select **Cable Input** from the list
+   - **Important:** If the change doesn't take effect, select a different device and save, then go back and select Cable Input again and save
+
+This setup allows your audio to be processed by FlowThing while still playing through your speakers, even when they're connected to your monitor rather than directly to your PC.
+
 ## Features
 
 ### 🎨 Visualization Types
@@ -107,6 +148,7 @@ This PoC has been Vibe coded with Cursor based on Riprod's DeskThing app templat
 - **⚖️ Balanced:** Good balance of quality and performance (default)
 - **🚀 Performance:** Optimized for smooth performance on lower-end devices
 
+
 ## Technical Details
 
 ### Architecture
@@ -166,9 +208,3 @@ This project is open source. See LICENSE file for details.
 ---
 
 **Made for DeskThing** - Enhance your smart display with a music visualiser!
-
-
-
-
-
-
